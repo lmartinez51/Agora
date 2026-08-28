@@ -17,9 +17,9 @@
   --color-whatsapp: #25D366;
   --color-whatsapp-hover: #1EBE5D;
 
-  /* Font variables populated via next/font in layout.tsx */
+  /* Font variables: Body locked to Inter; Display / Heading font is PENDING DESIGN DECISION */
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  --font-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif; /* Neutral fallback: PENDING DESIGN DECISION */
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 

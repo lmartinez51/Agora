@@ -23,6 +23,9 @@ Para que un abogado en México pueda representar a una persona o empresa ubicada
 
 ## 3. Consultas legales a distancia
 En AGORA facilitamos la orientación inicial y el seguimiento procesal a través de sesiones virtuales seguras, permitiendo que nuestros clientes mantengan control y transparencia sobre sus asuntos sin traslados innecesarios.
+
+---
+*Aviso legal informativo: El contenido de esta publicación es de carácter estrictamente orientativo y docente. No constituye asesoría jurídica formal ni establece relación abogado-cliente. Para una valoración individualizada de su asunto, solicite una consulta profesional.*
     `.trim(),
   },
   {

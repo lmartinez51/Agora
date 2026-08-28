@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Cinzel } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { siteConfig } from '@/content/site';
 import { constructMetadata } from '@/lib/seo';
@@ -10,12 +10,7 @@ const fontSans = Inter({
   display: 'swap',
 });
 
-// Editorial Serif font placeholder - tracked under PENDING DESIGN DECISION
-const fontSerif = Cinzel({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  display: 'swap',
-});
+// Heading font remains: PENDING DESIGN DECISION (Uses neutral system serif stack in globals.css)
 
 export const metadata: Metadata = constructMetadata();
 
@@ -47,7 +42,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="es" className={`${fontSans.variable} ${fontSerif.variable}`}>
+    <html lang="es" className={fontSans.variable}>
       <head>
         <script
           type="application/ld+json"
