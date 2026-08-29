@@ -41,13 +41,13 @@ export function DesktopNav(): React.ReactElement {
   ];
 
   return (
-    <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-medium" aria-label="Navegación principal">
+    <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3 text-sm font-medium" aria-label="Navegación principal">
       {/* Inicio */}
       <Link
         href="/"
         aria-current={pathname === '/' ? 'page' : undefined}
         className={cn(
-          'px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent',
+          'px-2.5 xl:px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent tracking-wide',
           pathname === '/'
             ? 'text-brand-primary font-semibold border-b-2 border-brand-accent'
             : 'text-brand-text-secondary hover:text-brand-primary'
@@ -65,7 +65,7 @@ export function DesktopNav(): React.ReactElement {
           onClick={() => setPracticesOpen((prev) => !prev)}
           onMouseEnter={() => setPracticesOpen(true)}
           className={cn(
-            'inline-flex items-center gap-1 px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent cursor-pointer',
+            'inline-flex items-center gap-1 px-2.5 xl:px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent cursor-pointer tracking-wide',
             pathname.startsWith('/practicas')
               ? 'text-brand-primary font-semibold border-b-2 border-brand-accent'
               : 'text-brand-text-secondary hover:text-brand-primary'
@@ -73,7 +73,7 @@ export function DesktopNav(): React.ReactElement {
         >
           <span>Prácticas</span>
           <ChevronDown
-            className={cn('w-3.5 h-3.5 transition-transform duration-150', practicesOpen && 'rotate-180')}
+            className={cn('w-3.5 h-3.5 transition-transform duration-150 text-brand-text-muted', practicesOpen && 'rotate-180 text-brand-accent')}
             aria-hidden="true"
           />
         </button>
@@ -81,11 +81,11 @@ export function DesktopNav(): React.ReactElement {
         {practicesOpen && (
           <div
             onMouseLeave={() => setPracticesOpen(false)}
-            className="absolute left-0 top-full mt-1 w-64 bg-brand-surface border border-brand-border rounded-sm shadow-overlay p-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+            className="absolute left-0 top-full mt-2 w-72 bg-brand-surface border border-brand-border rounded-sm shadow-overlay p-3 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
             role="menu"
             aria-orientation="vertical"
           >
-            <div className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest text-brand-accent font-semibold border-b border-brand-border mb-1">
+            <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent font-semibold border-b border-brand-border/80 mb-2">
               Áreas de Especialidad
             </div>
             <Link
@@ -93,13 +93,13 @@ export function DesktopNav(): React.ReactElement {
               onClick={() => setPracticesOpen(false)}
               role="menuitem"
               className={cn(
-                'block px-3 py-2 rounded-sm text-xs font-semibold hover:bg-brand-muted transition-colors',
-                pathname === '/practicas' ? 'text-brand-accent bg-brand-muted' : 'text-brand-primary'
+                'block px-3 py-2 rounded-sm text-xs font-semibold hover:bg-brand-muted transition-colors mb-1',
+                pathname === '/practicas' ? 'text-brand-accent bg-brand-muted font-bold' : 'text-brand-primary'
               )}
             >
-              Ver todas las prácticas &rarr;
+              Todas las Prácticas Jurídicas &rarr;
             </Link>
-            <div className="my-1 border-t border-brand-border/60" />
+            <div className="my-1.5 border-t border-brand-border/60" />
             {practices.map((practice) => {
               const active = pathname === `/practicas/${practice.slug}`;
               return (
@@ -130,7 +130,7 @@ export function DesktopNav(): React.ReactElement {
             href={link.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent',
+              'px-2.5 xl:px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent tracking-wide whitespace-nowrap',
               active
                 ? 'text-brand-primary font-semibold border-b-2 border-brand-accent'
                 : 'text-brand-text-secondary hover:text-brand-primary',
@@ -139,7 +139,7 @@ export function DesktopNav(): React.ReactElement {
           >
             <span>{link.label}</span>
             {link.isStrategic && (
-              <span className="hidden xl:inline-block ml-1.5 px-1 py-0.2 text-[9px] font-mono tracking-wider uppercase bg-brand-accent/15 text-brand-accent rounded-sm align-middle">
+              <span className="hidden xl:inline-block ml-1.5 px-1 py-0.2 text-[9px] font-mono tracking-wider uppercase bg-brand-accent/15 text-brand-accent rounded-sm align-middle font-semibold">
                 Online
               </span>
             )}

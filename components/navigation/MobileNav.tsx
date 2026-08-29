@@ -80,10 +80,14 @@ export function MobileNav(): React.ReactElement {
             className="w-full max-h-[88vh] bg-brand-surface border-t border-brand-border rounded-t-md p-6 sm:p-8 overflow-y-auto flex flex-col shadow-overlay animate-in slide-in-from-bottom duration-250"
           >
             {/* Drawer Header */}
-            <div className="flex items-center justify-between border-b border-brand-border pb-4 mb-6">
+            <div className="flex items-center justify-between border-b border-brand-border pb-5 mb-6">
               <div>
-                <span className="font-serif font-bold text-lg text-brand-primary block">AGORA, ABOGADOS</span>
-                <span className="text-xs font-mono uppercase text-brand-accent">Consultoría Jurídica</span>
+                <span className="font-serif font-bold text-xl text-brand-primary block tracking-tight">
+                  AGORA, ABOGADOS
+                </span>
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent font-semibold block mt-1">
+                  Consultoría Jurídica
+                </span>
               </div>
               <button
                 type="button"
@@ -91,7 +95,7 @@ export function MobileNav(): React.ReactElement {
                 aria-label="Cerrar menú"
                 className="p-2 text-brand-text-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent rounded-sm"
               >
-                <X className="w-5 h-5" aria-hidden="true" />
+                <X className="w-6 h-6" aria-hidden="true" />
               </button>
             </div>
 
