@@ -69,12 +69,20 @@ export function ContactForm(): React.ReactElement {
           <CheckCircle2 className="w-6 h-6" aria-hidden="true" />
         </div>
         <h3 className="text-xl font-serif font-bold text-brand-primary">
-          Mensaje Recibido Correctamente
+          Solicitud de Consulta Registrada
         </h3>
         <p className="text-xs sm:text-sm text-brand-text-secondary max-w-md mx-auto leading-relaxed">
-          Gracias por contactar a AGORA, ABOGADOS. Un miembro de nuestro equipo legal revisará su solicitud y se comunicará con usted dentro de nuestro horario de atención.
+          Para garantizar una respuesta inmediata y directa con el abogado especialista asignado, le sugerimos formalizar su consulta a través de nuestro canal prioritario de WhatsApp o vía telefónica.
         </p>
-        <div className="pt-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <a
+            href={`https://wa.me/526563502916?text=${encodeURIComponent(`Hola, completé el formulario de contacto para una consulta sobre ${practiceOptions.find(p => p.value === formData.practice)?.label || 'asesoría jurídica'}. Mi nombre es ${formData.name}.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-brand-whatsapp hover:bg-brand-whatsapp-hover text-white font-medium rounded-sm text-xs transition-colors shadow-subtle"
+          >
+            Confirmar y Enviar por WhatsApp &rarr;
+          </a>
           <Button
             variant="secondary"
             size="sm"
@@ -83,7 +91,7 @@ export function ContactForm(): React.ReactElement {
               setFormData({ name: '', contact: '', practice: 'general', message: '' });
             }}
           >
-            Enviar otro mensaje
+            Editar Formulario
           </Button>
         </div>
       </div>
