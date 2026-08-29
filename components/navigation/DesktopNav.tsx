@@ -41,13 +41,13 @@ export function DesktopNav(): React.ReactElement {
   ];
 
   return (
-    <nav className="hidden xl:flex items-center gap-2 2xl:gap-3 text-sm font-medium" aria-label="Navegación principal">
+    <nav className="hidden xl:flex items-center gap-1 xl:gap-1.5 2xl:gap-2 text-xs xl:text-[13px] 2xl:text-sm font-medium" aria-label="Navegación principal">
       {/* Inicio */}
       <Link
         href="/"
         aria-current={pathname === '/' ? 'page' : undefined}
         className={cn(
-          'px-2.5 xl:px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent tracking-wide',
+          'px-2 xl:px-2.5 py-1.5 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent tracking-wide whitespace-nowrap',
           pathname === '/'
             ? 'text-brand-primary font-semibold border-b-2 border-brand-accent'
             : 'text-brand-text-secondary hover:text-brand-primary'
@@ -65,7 +65,7 @@ export function DesktopNav(): React.ReactElement {
           onClick={() => setPracticesOpen((prev) => !prev)}
           onMouseEnter={() => setPracticesOpen(true)}
           className={cn(
-            'inline-flex items-center gap-1 px-2.5 xl:px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent cursor-pointer tracking-wide',
+            'inline-flex items-center gap-1 px-2 xl:px-2.5 py-1.5 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent cursor-pointer tracking-wide whitespace-nowrap',
             pathname.startsWith('/practicas')
               ? 'text-brand-primary font-semibold border-b-2 border-brand-accent'
               : 'text-brand-text-secondary hover:text-brand-primary'
@@ -130,7 +130,7 @@ export function DesktopNav(): React.ReactElement {
             href={link.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'px-2.5 xl:px-3 py-2 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent tracking-wide whitespace-nowrap',
+              'px-2 xl:px-2.5 py-1.5 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent tracking-wide whitespace-nowrap',
               active
                 ? 'text-brand-primary font-semibold border-b-2 border-brand-accent'
                 : 'text-brand-text-secondary hover:text-brand-primary',
@@ -139,7 +139,7 @@ export function DesktopNav(): React.ReactElement {
           >
             <span>{link.label}</span>
             {link.isStrategic && (
-              <span className="hidden xl:inline-block ml-1.5 px-1 py-0.2 text-[9px] font-mono tracking-wider uppercase bg-brand-accent/15 text-brand-accent rounded-sm align-middle font-semibold">
+              <span className="hidden xl:inline-block ml-1 px-1 py-0.2 text-[9px] font-mono tracking-wider uppercase bg-brand-accent/15 text-brand-accent rounded-sm align-middle font-semibold">
                 Online
               </span>
             )}
