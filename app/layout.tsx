@@ -4,6 +4,10 @@ import './globals.css';
 import { siteConfig } from '@/content/site';
 import { constructMetadata } from '@/lib/seo';
 
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { MobileStickyBar } from '@/components/layout/MobileStickyBar';
+
 const fontSans = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
@@ -49,8 +53,13 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="min-h-screen bg-brand-canvas text-brand-text-primary antialiased flex flex-col">
-        {children}
+      <body className="min-h-screen bg-brand-canvas text-brand-text-primary antialiased flex flex-col selection:bg-brand-accent/20">
+        <Header />
+        <main className="flex-1 pb-16 md:pb-0">
+          {children}
+        </main>
+        <Footer />
+        <MobileStickyBar />
       </body>
     </html>
   );
