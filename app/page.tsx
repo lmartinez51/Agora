@@ -7,7 +7,7 @@ export default function HomePage(): React.ReactElement {
   const whatsappUrl = createWhatsAppLink({ context: 'general' });
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 max-w-container-lg mx-auto text-center">
+    <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 max-w-container-lg mx-auto text-center w-full">
       <div className="border border-brand-border bg-brand-surface p-8 md:p-12 rounded-md shadow-card max-w-2xl w-full">
         <span className="inline-block px-3 py-1 bg-brand-muted text-brand-accent text-xs font-mono tracking-widest uppercase mb-4 rounded-sm">
           Fase 1 — Fundación Técnica
@@ -49,6 +49,6 @@ export default function HomePage(): React.ReactElement {
       <div className="w-full mt-8">
         <BookingFallback />
       </div>
-    </main>
+    </div>
   );
 }

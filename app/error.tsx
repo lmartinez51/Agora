@@ -19,7 +19,7 @@ export default function ErrorBoundary({
   const whatsappUrl = createWhatsAppLink({ context: 'general' });
 
   return (
-    <main className="min-h-[70vh] flex items-center justify-center p-6 text-center">
+    <div className="min-h-[70vh] flex items-center justify-center p-6 text-center">
       <div className="max-w-md w-full border border-brand-border bg-brand-surface p-8 rounded-md shadow-card">
         <span className="text-xs font-mono text-red-600 uppercase tracking-widest block mb-2">
           Estado Inesperado
@@ -47,6 +47,6 @@ export default function ErrorBoundary({
           </a>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -5,11 +5,28 @@ import { Footer } from '@/components/layout/Footer';
 import { MobileStickyBar } from '@/components/layout/MobileStickyBar';
 import { siteConfig } from '@/content/site';
 
+import { DesktopNav } from '@/components/navigation/DesktopNav';
+import { MobileNav } from '@/components/navigation/MobileNav';
+
 describe('Global Site Shell Components', () => {
   describe('Header Component', () => {
     it('creates a React element for Header', () => {
       const headerEl = React.createElement(Header);
       expect(headerEl).toBeDefined();
+    });
+  });
+
+  describe('DesktopNav Component', () => {
+    it('creates a React element for DesktopNav', () => {
+      const navEl = React.createElement(DesktopNav);
+      expect(navEl).toBeDefined();
+    });
+  });
+
+  describe('MobileNav Component', () => {
+    it('creates a React element for MobileNav', () => {
+      const mobileNavEl = React.createElement(MobileNav);
+      expect(mobileNavEl).toBeDefined();
     });
   });
 

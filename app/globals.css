@@ -29,6 +29,7 @@
     scroll-behavior: smooth;
     background-color: var(--color-canvas);
     color: var(--color-text-primary);
+    overflow-x: clip;
   }
 
   body {
@@ -39,6 +40,9 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow-x: clip;
+    width: 100%;
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, h5, h6 {

@@ -41,7 +41,7 @@ export function DesktopNav(): React.ReactElement {
   ];
 
   return (
-    <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3 text-sm font-medium" aria-label="Navegación principal">
+    <nav className="hidden xl:flex items-center gap-2 2xl:gap-3 text-sm font-medium" aria-label="Navegación principal">
       {/* Inicio */}
       <Link
         href="/"

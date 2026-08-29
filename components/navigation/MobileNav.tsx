@@ -49,7 +49,7 @@ export function MobileNav(): React.ReactElement {
   };
 
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       {/* Hamburger Trigger Button */}
       <button
         ref={triggerRef}
