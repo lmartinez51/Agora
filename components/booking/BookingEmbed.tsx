@@ -8,7 +8,7 @@ interface BookingEmbedProps {
 export function BookingEmbed({ bookingUrl }: BookingEmbedProps): React.ReactElement {
   const resolvedUrl = bookingUrl || process.env.NEXT_PUBLIC_BOOKING_URL;
 
-  if (!resolvedUrl || resolvedUrl.trim() === '') {
+  if (!resolvedUrl || resolvedUrl.trim() === '' || !resolvedUrl.trim().startsWith('https://')) {
     return <BookingFallback />;
   }
 
