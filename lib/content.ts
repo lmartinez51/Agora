@@ -32,6 +32,11 @@ export async function getTeam(): Promise<TeamMember[]> {
   return teamMembers;
 }
 
+export async function getTeamMemberBySlug(slug: string): Promise<TeamMember | null> {
+  const found = teamMembers.find((m) => m.slug === slug);
+  return found || null;
+}
+
 export async function getGeneralFaqs(): Promise<FAQItem[]> {
   return generalFaqs;
 }
