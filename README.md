@@ -7,8 +7,9 @@ Este repositorio contiene la plataforma digital y arquitectura web para la firma
 ---
 
 ## Estado del Proyecto
-- **Fase Actual:** `PHASE 1 — FOUNDATION`
-- **Ambiente de Ejecución:** Google Antigravity 2.11.x / Next.js 14 App Router
+- **Fase Actual:** `PHASE 5 — PRODUCTION DEPLOYMENT & INTEGRAL QA COMPLETED`
+- **Ambiente de Ejecución:** Next.js 14 App Router / Vercel Production
+- **Despliegue en Vivo:** [https://agora-alpha-mauve.vercel.app](https://agora-alpha-mauve.vercel.app)
 
 ---
 
