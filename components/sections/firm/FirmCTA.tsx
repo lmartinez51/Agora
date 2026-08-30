@@ -44,7 +44,7 @@ export function FirmCTA(): React.ReactElement {
               <PhoneCTA variant="inline" className="text-white hover:text-brand-accent font-mono" />
             </div>
             <div className="font-mono">
-              <span>{siteConfig.contact.hours} · {siteConfig.location.city}, Chihuahua, México</span>
+              <span>{siteConfig.location.city}, {siteConfig.location.state}, {siteConfig.location.country}</span>
             </div>
           </div>
         </div>

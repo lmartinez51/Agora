@@ -11,7 +11,7 @@ export interface FirmContact {
   whatsappNumber: string;
   whatsappDisplay: string;
   email: string; // PENDING CLIENT DATA
-  hours: string;
+  hours: string; // PENDING CLIENT DATA
   operatingDays: string; // PENDING CLIENT DATA
 }
 

@@ -41,8 +41,6 @@ export default function RootLayout({
       addressRegion: siteConfig.location.state,
       addressCountry: siteConfig.location.country,
     },
-    openingHours: siteConfig.contact.hours,
-    priceRange: '$$',
   };
 
   return (

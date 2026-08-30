@@ -43,7 +43,7 @@ export function FinalConversion(): React.ReactElement {
               <PhoneCTA variant="inline" className="font-mono text-xs" />
             </div>
             <div className="font-mono">
-              <span>Horario: {siteConfig.contact.hours} · {siteConfig.location.city}, México</span>
+              <span>{siteConfig.location.city}, {siteConfig.location.state}, {siteConfig.location.country}</span>
             </div>
           </div>
         </div>

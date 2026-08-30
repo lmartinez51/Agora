@@ -50,7 +50,7 @@ export default function AgendaPage(): React.ReactElement {
               <PhoneCTA variant="inline" className="text-brand-accent hover:text-white font-mono font-medium" />
             </div>
             <div className="font-mono text-neutral-400">
-              <span>{siteConfig.contact.hours} · {siteConfig.location.city}, México</span>
+              <span>{siteConfig.location.city}, {siteConfig.location.state}, {siteConfig.location.country}</span>
             </div>
           </div>
         </Container>

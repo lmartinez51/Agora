@@ -16,7 +16,7 @@ export const siteConfig: FirmConfig = {
     whatsappNumber: '526563502916',
     whatsappDisplay: '+52 656 350 2916',
     email: '[CORREO PENDIENTE DE CONFIRMACIÓN POR EL CLIENTE]',
-    hours: '8:00 AM – 6:00 PM',
+    hours: '[HORARIO PENDIENTE DE CONFIRMACIÓN POR EL CLIENTE]',
     operatingDays: '[DÍAS DE ATENCIÓN PENDIENTES DE CONFIRMACIÓN POR EL CLIENTE]',
   },
   metrics: {
