@@ -7,6 +7,7 @@ import { constructMetadata } from '@/lib/seo';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { MobileStickyBar } from '@/components/layout/MobileStickyBar';
+import { AIChatWrapper } from '@/components/ai-chat/AIChatWrapper';
 
 const fontSans = Inter({
   subsets: ['latin'],
@@ -58,6 +59,7 @@ export default function RootLayout({
         </main>
         <Footer />
         <MobileStickyBar />
+        <AIChatWrapper />
       </body>
     </html>
   );
