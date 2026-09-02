@@ -7,6 +7,7 @@ export interface AIChatConfig {
   maxUserMessageLength: number;
   maxHistoryTurns: number;
   availability: '24/7_automated';
+  privateSecret?: string;
 }
 
 export function isAIChatEnabled(): boolean {
@@ -21,6 +22,10 @@ export function getAIChatMode(): AIChatMode {
   return isAIChatEnabled() ? 'public' : 'disabled';
 }
 
+export function getAIPrivateSecret(): string | undefined {
+  return process.env.AI_CHAT_PRIVATE_SECRET;
+}
+
 export function getAIProviderType(): AIProviderType {
   const provider = process.env.AI_PROVIDER;
   if (provider === 'gemini' || provider === 'openai' || provider === 'unavailable' || provider === 'local') {
@@ -33,6 +38,7 @@ export function getAIChatConfig(): AIChatConfig {
   const enabled = isAIChatEnabled();
   const mode = getAIChatMode();
   const provider = getAIProviderType();
+  const privateSecret = getAIPrivateSecret();
 
   return {
     enabled,
@@ -41,5 +47,6 @@ export function getAIChatConfig(): AIChatConfig {
     maxUserMessageLength: 500,
     maxHistoryTurns: 10,
     availability: '24/7_automated',
+    privateSecret,
   };
 }

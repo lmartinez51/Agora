@@ -21,7 +21,11 @@ export class LocalGroundingProvider implements AIProvider {
   ): Promise<AIResponsePayload> {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
     const lowerQuery = lastUserMsg.toLowerCase().trim();
-    const isEnglish = lowerQuery.includes('hello') || lowerQuery.includes('help') || lowerQuery.includes('what') || lowerQuery.includes('lawyer');
+    const isEnglish =
+      lowerQuery.includes('hello') ||
+      lowerQuery.includes('help') ||
+      lowerQuery.includes('what') ||
+      lowerQuery.includes('lawyer');
 
     // 1. Out of scope handling
     if (context.intentResult.intent === 'out_of_scope') {
@@ -134,7 +138,87 @@ export class LocalGroundingProvider implements AIProvider {
 }
 
 /**
- * 2. Unavailable Provider Fallback
+ * 2. Google Gemini Provider
+ * Connects securely server-side to the Google Gemini REST API.
+ */
+export class GeminiProvider implements AIProvider {
+  type: AIProviderType = 'gemini';
+
+  async generateResponse(
+    messages: ChatMessage[],
+    context: AIRequestContext
+  ): Promise<AIResponsePayload> {
+    const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return {
+        content:
+          'El asistente virtual no tiene una clave de acceso configurada en el servidor. Puede comunicarse directamente con AGORA, ABOGADOS por WhatsApp.',
+        actions: context.intentResult.suggestedActions,
+        intent: context.intentResult.intent,
+      };
+    }
+
+    try {
+      // Preserve recent conversation turns (up to last 6 messages)
+      const recentMessages = messages.slice(-6);
+      const contents = recentMessages.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+      const payload = {
+        contents,
+        systemInstruction: {
+          parts: [{ text: context.groundedKnowledge }],
+        },
+        generationConfig: {
+          temperature: 0.2,
+          topP: 0.8,
+          maxOutputTokens: 500,
+        },
+      };
+
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API returned HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!rawText || typeof rawText !== 'string') {
+        throw new Error('Empty or malformed Gemini response');
+      }
+
+      const cleanContent = sanitizeOutputGuardrails(rawText.trim());
+
+      return {
+        content: cleanContent,
+        actions: context.intentResult.suggestedActions,
+        intent: context.intentResult.intent,
+      };
+    } catch {
+      // Graceful error fallback without exposing internal API details
+      return {
+        content:
+          'Ocurrió una interrupción al conectar con el servicio de IA. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.',
+        actions: context.intentResult.suggestedActions,
+        intent: context.intentResult.intent,
+      };
+    }
+  }
+}
+
+/**
+ * 3. Unavailable Provider Fallback
  */
 export class UnavailableProvider implements AIProvider {
   type: AIProviderType = 'unavailable';
@@ -169,6 +253,8 @@ export function getAIProvider(): AIProvider {
   const providerType = getAIProviderType();
 
   switch (providerType) {
+    case 'gemini':
+      return new GeminiProvider();
     case 'unavailable':
       return new UnavailableProvider();
     case 'local':
