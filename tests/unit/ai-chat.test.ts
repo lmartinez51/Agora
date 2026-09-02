@@ -4,7 +4,7 @@ import { isAIChatEnabled, getAIChatMode, getAIChatConfig, getAIPrivateSecret } f
 import { compileKnowledge, getSystemPromptKnowledge } from '@/lib/ai/knowledge';
 import { checkInputGuardrails, sanitizeOutputGuardrails } from '@/lib/ai/guardrails';
 import { detectIntent } from '@/lib/ai/intent';
-import { LocalGroundingProvider, GeminiProvider, UnavailableProvider, getAIProvider } from '@/lib/ai/provider';
+import { LocalGroundingProvider, GeminiProvider, UnavailableProvider, getAIProvider, normalizeGeminiContents } from '@/lib/ai/provider';
 import { aiIdentity } from '@/content/ai/identity';
 import { aiStarterPrompts } from '@/content/ai/starters';
 import { AIChatLauncher } from '@/components/ai-chat/AIChatLauncher';
@@ -335,6 +335,88 @@ describe('Phase 12.1 — AGORA AI Chat Engine & Gemini Provider Subsystem', () =
 
       expect(response.content).toContain('Ocurrió una interrupción');
       expect(response.actions?.length).toBeGreaterThan(0);
+    });
+
+    describe('SEC-02: Gemini Message Turn Normalization (normalizeGeminiContents)', () => {
+      it('removes leading assistant/model messages so conversation starts with user', () => {
+        const input = [
+          { id: '1', role: 'assistant' as const, content: 'Hola, soy el asistente', createdAt: 1 },
+          { id: '2', role: 'user' as const, content: 'Hola, quiero informes', createdAt: 2 },
+        ];
+        const result = normalizeGeminiContents(input);
+        expect(result).toHaveLength(1);
+        expect(result[0].role).toBe('user');
+        expect(result[0].parts[0].text).toBe('Hola, quiero informes');
+      });
+
+      it('coalesces consecutive user messages into a single user turn', () => {
+        const input = [
+          { id: '1', role: 'user' as const, content: 'Hola', createdAt: 1 },
+          { id: '2', role: 'user' as const, content: 'Quiero saber sobre derecho mercantil', createdAt: 2 },
+          { id: '3', role: 'assistant' as const, content: 'Claro, con gusto', createdAt: 3 },
+          { id: '4', role: 'user' as const, content: '¿Y atienden empresas?', createdAt: 4 },
+        ];
+        const result = normalizeGeminiContents(input);
+        expect(result).toHaveLength(3);
+        expect(result[0].role).toBe('user');
+        expect(result[0].parts[0].text).toBe('Hola\nQuiero saber sobre derecho mercantil');
+        expect(result[1].role).toBe('model');
+        expect(result[1].parts[0].text).toBe('Claro, con gusto');
+        expect(result[2].role).toBe('user');
+        expect(result[2].parts[0].text).toBe('¿Y atienden empresas?');
+      });
+
+      it('coalesces consecutive assistant messages into a single model turn', () => {
+        const input = [
+          { id: '1', role: 'user' as const, content: '¿Dónde están ubicados?', createdAt: 1 },
+          { id: '2', role: 'assistant' as const, content: 'Estamos en Ciudad Juárez.', createdAt: 2 },
+          { id: '3', role: 'assistant' as const, content: 'La dirección exacta está pendiente de confirmación.', createdAt: 3 },
+          { id: '4', role: 'user' as const, content: 'Gracias', createdAt: 4 },
+        ];
+        const result = normalizeGeminiContents(input);
+        expect(result).toHaveLength(3);
+        expect(result[0].role).toBe('user');
+        expect(result[1].role).toBe('model');
+        expect(result[1].parts[0].text).toBe('Estamos en Ciudad Juárez.\nLa dirección exacta está pendiente de confirmación.');
+        expect(result[2].role).toBe('user');
+      });
+
+      it('filters out empty or malformed messages cleanly', () => {
+        const input = [
+          { id: '1', role: 'user' as const, content: '   ', createdAt: 1 },
+          { id: '2', role: 'user' as const, content: 'Pregunta válida', createdAt: 2 },
+          { id: '3', role: 'assistant' as const, content: '', createdAt: 3 },
+          { id: '4', role: 'assistant' as const, content: 'Respuesta válida', createdAt: 4 },
+        ];
+        const result = normalizeGeminiContents(input);
+        expect(result).toHaveLength(2);
+        expect(result[0].role).toBe('user');
+        expect(result[0].parts[0].text).toBe('Pregunta válida');
+        expect(result[1].role).toBe('model');
+        expect(result[1].parts[0].text).toBe('Respuesta válida');
+      });
+
+      it('preserves the 6-message context window slice', () => {
+        const input = Array.from({ length: 10 }, (_, i) => ({
+          id: String(i),
+          role: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: `Mensaje ${i}`,
+          createdAt: i,
+        }));
+        const result = normalizeGeminiContents(input);
+        expect(result).toHaveLength(6);
+        expect(result[0].role).toBe('user');
+        expect(result[0].parts[0].text).toBe('Mensaje 4');
+        expect(result[5].role).toBe('model');
+        expect(result[5].parts[0].text).toBe('Mensaje 9');
+      });
+
+      it('returns empty array when input contains no user turns', () => {
+        const input = [
+          { id: '1', role: 'assistant' as const, content: 'Mensaje de modelo', createdAt: 1 },
+        ];
+        expect(normalizeGeminiContents(input)).toEqual([]);
+      });
     });
   });
 

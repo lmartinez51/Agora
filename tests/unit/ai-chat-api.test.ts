@@ -242,4 +242,37 @@ describe('PART B — HTTP Integration Tests for POST /api/ai-chat', () => {
     const data = await blockedRes.json();
     expect(data.error).toContain('Too many requests');
   });
+
+  // 15. Message array boundary: exactly 10 messages
+  it('15. accepts conversation requests with exactly 10 messages', async () => {
+    const messages = Array.from({ length: 10 }, (_, i) => ({
+      id: String(i),
+      role: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: i === 9 ? '¿Cuál es su horario de atención?' : `Mensaje ${i}`,
+      createdAt: Date.now() + i,
+    }));
+
+    const req = createMockRequest({ messages });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.message.content).toBeTruthy();
+  });
+
+  // 16. Message array boundary: 11 messages exceeds bound
+  it('16. rejects conversation requests with 11 messages (exceeds 10 limit) with 400', async () => {
+    const messages = Array.from({ length: 11 }, (_, i) => ({
+      id: String(i),
+      role: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: `Mensaje ${i}`,
+      createdAt: Date.now() + i,
+    }));
+
+    const req = createMockRequest({ messages });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain('supera el límite máximo permitido');
+  });
 });
+

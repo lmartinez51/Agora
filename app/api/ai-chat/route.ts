@@ -91,6 +91,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const messages: ChatMessage[] = body.messages;
+
+    // SEC-03: Upper bound on incoming message array (max 10 messages)
+    if (messages.length > 10) {
+      return NextResponse.json(
+        {
+          error:
+            'El historial de la conversación supera el límite máximo permitido (10 mensajes). Por favor inicie una nueva sesión.',
+        },
+        { status: 400 }
+      );
+    }
+
     const latestUserMsg = messages[messages.length - 1];
 
     if (!latestUserMsg || typeof latestUserMsg.content !== 'string') {

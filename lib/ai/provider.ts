@@ -8,6 +8,65 @@ import { siteConfig } from '@/content/site';
 import { sanitizeOutputGuardrails } from './guardrails';
 import { createWhatsAppLink } from '@/lib/whatsapp';
 
+export interface GeminiContentTurn {
+  role: 'user' | 'model';
+  parts: Array<{ text: string }>;
+}
+
+/**
+ * Deterministically normalizes chat messages for the Google Gemini API (SEC-02).
+ * - Slices up to the last 6 messages.
+ * - Drops empty or non-string messages.
+ * - Maps roles: 'assistant' -> 'model', everything else -> 'user'.
+ * - Drops leading 'model' turns so the sequence always starts with 'user'.
+ * - Coalesces consecutive turns of the same role into a single turn separated by newline.
+ */
+export function normalizeGeminiContents(messages: ChatMessage[]): GeminiContentTurn[] {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return [];
+  }
+
+  // 1. Take up to the last 6 messages
+  const recent = messages.slice(-6);
+
+  // 2. Filter valid non-empty messages and map roles
+  const validTurns: Array<{ role: 'user' | 'model'; text: string }> = [];
+  for (const msg of recent) {
+    if (typeof msg.content === 'string') {
+      const trimmed = msg.content.trim();
+      if (trimmed.length > 0) {
+        validTurns.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          text: trimmed,
+        });
+      }
+    }
+  }
+
+  // 3. Drop leading 'model' turns so conversation starts with 'user'
+  const firstUserIndex = validTurns.findIndex((t) => t.role === 'user');
+  if (firstUserIndex === -1) {
+    return [];
+  }
+  const fromFirstUser = validTurns.slice(firstUserIndex);
+
+  // 4. Coalesce consecutive turns of the same role
+  const coalesced: GeminiContentTurn[] = [];
+  for (const turn of fromFirstUser) {
+    const last = coalesced[coalesced.length - 1];
+    if (last && last.role === turn.role) {
+      last.parts[0].text += `\n${turn.text}`;
+    } else {
+      coalesced.push({
+        role: turn.role,
+        parts: [{ text: turn.text }],
+      });
+    }
+  }
+
+  return coalesced;
+}
+
 /**
  * 1. Local Grounded Provider
  * Uses verified structured data to answer queries accurately without third-party API dependencies.
@@ -160,12 +219,17 @@ export class GeminiProvider implements AIProvider {
     }
 
     try {
-      // Preserve recent conversation turns (up to last 6 messages)
-      const recentMessages = messages.slice(-6);
-      const contents = recentMessages.map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      }));
+      // Normalize conversation turns strictly for Gemini API requirements (SEC-02)
+      const contents = normalizeGeminiContents(messages);
+
+      if (contents.length === 0) {
+        return {
+          content:
+            'Por favor ingrese una consulta válida para que el asistente pueda orientarle.',
+          actions: context.intentResult.suggestedActions,
+          intent: context.intentResult.intent,
+        };
+      }
 
       const payload = {
         contents,
