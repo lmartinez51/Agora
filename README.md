@@ -17,7 +17,8 @@ Este repositorio contiene la plataforma digital y arquitectura web para la firma
 - **Framework:** Next.js 14 (App Router, React Server Components por defecto)
 - **Lenguaje:** TypeScript (Strict Mode)
 - **Estilos:** Tailwind CSS con tokens de diseño semánticos
-- **Testing:** Vitest (Pruebas unitarias y de integridad de datos)
+- **AI Engine:** Orientador Jurídico IA con arquitectura de guardrails, rate limiting en memoria y proveedor Google Gemini (con fallback determinista local)
+- **Testing:** Vitest (Pruebas unitarias, integración y evaluación del subsistema de IA)
 - **Iconografía:** Lucide React (Vectorial, ligera y accesible)
 - **SEO:** Generación nativa de metadatos dinámicos, `sitemap.xml`, `robots.txt` y JSON-LD estructurado (`LegalService`)
 
@@ -26,11 +27,11 @@ Este repositorio contiene la plataforma digital y arquitectura web para la firma
 ## Estructura del Proyecto
 ```text
 AGORA/
-├── app/                  # Rutas App Router, layouts, error boundaries, sitemap y robots
-├── components/           # Componentes modulares (layout, ui, booking, ai, contact, practice)
-├── content/              # Fuentes de datos tipadas (site, practices, audiences, team, faqs, articles)
+├── app/                  # Rutas App Router, API endpoints (/api/ai-chat), layouts, error boundaries, sitemap y robots
+├── components/           # Componentes modulares (layout, ui, booking, ai-chat, contact, practice)
+├── content/              # Fuentes de datos tipadas (site, practices, audiences, team, faqs, articles, ai)
 ├── docs/                 # Especificaciones maestras y constitución visual
-├── lib/                  # Utilidades (whatsapp, seo, analytics, data provider)
+├── lib/                  # Utilidades (ai, whatsapp, seo, analytics, data provider)
 ├── public/               # Recursos estáticos (imágenes, fuentes)
 ├── tests/                # Pruebas unitarias e integración
 ├── types/                # Definiciones de TypeScript
@@ -52,6 +53,10 @@ cp .env.example .env.local
 Variables disponibles:
 - `NEXT_PUBLIC_SITE_URL`: URL base del sitio para canónicos y sitemaps (por defecto `http://localhost:3000`).
 - `NEXT_PUBLIC_BOOKING_URL`: URL pública del Google Calendar Appointment Schedule. Si no se configura, el sistema activa automáticamente el componente de respaldo (*fallback*) con canalización directa a WhatsApp.
+- `NEXT_PUBLIC_AI_CHAT_ENABLED`: Activa/desactiva la interfaz del chat con IA (`true` | `false`).
+- `AI_CHAT_MODE`: Modo de operación del motor de IA (`disabled` | `private` | `public`).
+- `AI_PROVIDER`: Proveedor de inferencia (`local` | `gemini` | `unavailable`).
+- `GEMINI_API_KEY`: Clave de API de Google Gemini para respuestas generativas en vivo.
 
 ---
 
