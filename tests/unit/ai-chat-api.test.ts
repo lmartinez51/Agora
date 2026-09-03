@@ -3,8 +3,11 @@ import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/ai-chat/route';
 import { resetRateLimitsForTesting } from '@/lib/ai/ratelimit';
 
-function createMockRequest(body: unknown, headers: Record<string, string> = {}): NextRequest {
-  const url = 'http://localhost:3000/api/ai-chat';
+function createMockRequest(
+  body: unknown,
+  headers: Record<string, string> = {},
+  customUrl: string = 'http://localhost:3000/api/ai-chat'
+): NextRequest {
   const reqHeaders = new Headers();
   reqHeaders.set('Content-Type', 'application/json');
   reqHeaders.set('x-forwarded-for', headers['x-forwarded-for'] || '127.0.0.1');
@@ -13,7 +16,7 @@ function createMockRequest(body: unknown, headers: Record<string, string> = {}):
     reqHeaders.set(key, value);
   }
 
-  return new NextRequest(url, {
+  return new NextRequest(customUrl, {
     method: 'POST',
     headers: reqHeaders,
     body: typeof body === 'string' ? body : JSON.stringify(body),
@@ -25,6 +28,15 @@ describe('PART B — HTTP Integration Tests for POST /api/ai-chat', () => {
   const originalMode = process.env.AI_CHAT_MODE;
   const originalProvider = process.env.AI_PROVIDER;
   const originalSecret = process.env.AI_CHAT_PRIVATE_SECRET;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  function setNodeEnv(value: string | undefined) {
+    if (value === undefined) {
+      delete (process.env as Record<string, string | undefined>).NODE_ENV;
+    } else {
+      (process.env as Record<string, string | undefined>).NODE_ENV = value;
+    }
+  }
 
   beforeEach(() => {
     resetRateLimitsForTesting();
@@ -46,6 +58,8 @@ describe('PART B — HTTP Integration Tests for POST /api/ai-chat', () => {
 
     if (originalSecret !== undefined) process.env.AI_CHAT_PRIVATE_SECRET = originalSecret;
     else delete process.env.AI_CHAT_PRIVATE_SECRET;
+
+    setNodeEnv(originalNodeEnv);
 
     resetRateLimitsForTesting();
     vi.restoreAllMocks();
@@ -184,8 +198,49 @@ describe('PART B — HTTP Integration Tests for POST /api/ai-chat', () => {
     expect(data.message.actions.length).toBeGreaterThan(0);
   });
 
-  // 12. Private mode unauthorized request
-  it('12. rejects unauthorized requests with 401 when in private mode', async () => {
+  // 12a. Private mode: development + local request -> allowed without token
+  it('12a. allows local browser UI requests without token when NODE_ENV=development', async () => {
+    setNodeEnv('development');
+    process.env.AI_CHAT_MODE = 'private';
+    process.env.AI_CHAT_PRIVATE_SECRET = 'super-secret-token';
+
+    const req = createMockRequest(
+      {
+        messages: [{ id: '1', role: 'user', content: '¿Qué áreas atienden?', createdAt: Date.now() }],
+      },
+      { host: 'localhost:3000', 'x-forwarded-for': '127.0.0.1' },
+      'http://localhost:3000/api/ai-chat'
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.message.content).toBeTruthy();
+  });
+
+  // 12b. Private mode: development + non-local request -> unauthorized (401)
+  it('12b. rejects non-local requests with 401 when NODE_ENV=development without valid token', async () => {
+    setNodeEnv('development');
+    process.env.AI_CHAT_MODE = 'private';
+    process.env.AI_CHAT_PRIVATE_SECRET = 'super-secret-token';
+
+    const req = createMockRequest(
+      {
+        messages: [{ id: '1', role: 'user', content: '¿Qué áreas atienden?', createdAt: Date.now() }],
+      },
+      { host: 'agora-abogados.com', 'x-forwarded-for': '198.51.100.1' },
+      'https://agora-abogados.com/api/ai-chat'
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toContain('Unauthorized');
+  });
+
+  // 12c. Private mode: production + missing token -> 401
+  it('12c. rejects requests with 401 in production when token is missing', async () => {
+    setNodeEnv('production');
     process.env.AI_CHAT_MODE = 'private';
     process.env.AI_CHAT_PRIVATE_SECRET = 'super-secret-token';
 
@@ -199,22 +254,52 @@ describe('PART B — HTTP Integration Tests for POST /api/ai-chat', () => {
     expect(data.error).toContain('Unauthorized');
   });
 
-  // 13. Private mode authorized request
-  it('13. allows authorized requests when valid token is supplied in private mode', async () => {
+  // 12d. Private mode: production + invalid token -> 401
+  it('12d. rejects requests with 401 in production when token is invalid', async () => {
+    setNodeEnv('production');
     process.env.AI_CHAT_MODE = 'private';
     process.env.AI_CHAT_PRIVATE_SECRET = 'super-secret-token';
 
     const req = createMockRequest(
+      { messages: [{ id: '1', role: 'user', content: 'Hola', createdAt: Date.now() }] },
+      { 'x-agora-ai-auth': 'wrong-token' }
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toContain('Unauthorized');
+  });
+
+  // 13. Private mode: production + valid token -> allowed (200)
+  it('13. allows authorized requests when valid token is supplied in production mode', async () => {
+    setNodeEnv('production');
+    process.env.AI_CHAT_MODE = 'private';
+    process.env.AI_CHAT_PRIVATE_SECRET = 'super-secret-token';
+
+    // via x-agora-ai-auth
+    const reqHeader = createMockRequest(
       {
         messages: [{ id: '1', role: 'user', content: '¿Qué áreas atienden?', createdAt: Date.now() }],
       },
       { 'x-agora-ai-auth': 'super-secret-token' }
     );
+    const resHeader = await POST(reqHeader);
+    expect(resHeader.status).toBe(200);
+    const dataHeader = await resHeader.json();
+    expect(dataHeader.message.content).toBeTruthy();
 
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.message.content).toBeTruthy();
+    // via Authorization: Bearer
+    const reqBearer = createMockRequest(
+      {
+        messages: [{ id: '1', role: 'user', content: '¿Qué áreas atienden?', createdAt: Date.now() }],
+      },
+      { authorization: 'Bearer super-secret-token' }
+    );
+    const resBearer = await POST(reqBearer);
+    expect(resBearer.status).toBe(200);
+    const dataBearer = await resBearer.json();
+    expect(dataBearer.message.content).toBeTruthy();
   });
 
   // 14. Rate-limit exceeded request

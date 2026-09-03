@@ -5,7 +5,7 @@ import { detectIntent } from '@/lib/ai/intent';
 import { getSystemPromptKnowledge } from '@/lib/ai/knowledge';
 import { getAIProvider } from '@/lib/ai/provider';
 import { ChatMessage, AIRequestContext } from '@/lib/ai/types';
-import { checkRateLimit } from '@/lib/ai/ratelimit';
+import { checkRateLimit, isLocalhostRequest } from '@/lib/ai/ratelimit';
 import { createWhatsAppLink } from '@/lib/whatsapp';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -38,15 +38,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 2. Private Mode Server-Side Authorization Check
     if (config.mode === 'private') {
-      const authHeader = req.headers.get('x-agora-ai-auth') || req.headers.get('authorization');
-      const secret = config.privateSecret || process.env.AI_CHAT_PRIVATE_SECRET;
-      const isBearer = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+      const isDevLocal = process.env.NODE_ENV === 'development' && isLocalhostRequest(req);
 
-      if (!secret || isBearer !== secret) {
-        return NextResponse.json(
-          { error: 'Unauthorized: Private mode requires a valid authorization header.' },
-          { status: 401 }
-        );
+      if (!isDevLocal) {
+        const authHeader = req.headers.get('x-agora-ai-auth') || req.headers.get('authorization');
+        const secret = config.privateSecret || process.env.AI_CHAT_PRIVATE_SECRET;
+        const isBearer = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+
+        if (!secret || isBearer !== secret) {
+          return NextResponse.json(
+            { error: 'Unauthorized: Private mode requires a valid authorization header.' },
+            { status: 401 }
+          );
+        }
       }
     }
 

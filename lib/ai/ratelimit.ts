@@ -40,6 +40,28 @@ export function getClientIp(req: NextRequest): string {
 }
 
 /**
+ * Determines whether a request originates genuinely from local loopback (localhost, 127.0.0.1, ::1).
+ */
+export function isLocalhostRequest(req: NextRequest): boolean {
+  const host = req.headers.get('host')?.toLowerCase() || req.nextUrl.host?.toLowerCase() || '';
+  const hostname = host.split(':')[0];
+  const isLoopbackHost =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname === '::1';
+
+  const clientIp = getClientIp(req);
+  const isLoopbackIp =
+    clientIp === '127.0.0.1' ||
+    clientIp === '::1' ||
+    clientIp === '::ffff:127.0.0.1' ||
+    clientIp === 'localhost';
+
+  return isLoopbackHost && isLoopbackIp;
+}
+
+/**
  * Checks sliding window rate limit for a client IP
  */
 export function checkRateLimit(req: NextRequest): RateLimitResult {
