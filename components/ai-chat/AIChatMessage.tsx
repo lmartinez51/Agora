@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChatMessage, AIChatAction } from '@/lib/ai/types';
 import { AIChatActions } from './AIChatActions';
+import { AIChatMarkdown } from './AIChatMarkdown';
 import { Bot, User } from 'lucide-react';
 
 export interface AIChatMessageProps {
@@ -33,11 +34,15 @@ export function AIChatMessage({ message, onActionClick }: AIChatMessageProps): R
       <div
         className={`max-w-[85%] sm:max-w-[78%] rounded-md p-3.5 space-y-2 text-xs sm:text-[13px] leading-relaxed shadow-subtle ${
           isUser
-            ? 'bg-brand-primary text-white rounded-tr-none'
+            ? 'bg-brand-primary text-white rounded-tr-none whitespace-pre-wrap'
             : 'bg-brand-surface border border-brand-border text-brand-primary rounded-tl-none'
         }`}
       >
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        {isUser ? (
+          <p>{message.content}</p>
+        ) : (
+          <AIChatMarkdown content={message.content} />
+        )}
 
         {/* Attached Suggested Actions */}
         {!isUser && message.actions && message.actions.length > 0 && (

@@ -200,12 +200,21 @@ export class LocalGroundingProvider implements AIProvider {
  * 2. Google Gemini Provider
  * Connects securely server-side to the Google Gemini REST API.
  */
+export interface GeminiProviderOptions {
+  maxRetries?: number;
+  getRetryDelay?: (attempt: number) => number;
+}
+
 export class GeminiProvider implements AIProvider {
   type: AIProviderType = 'gemini';
   readonly model: string;
+  readonly maxRetries: number;
+  private readonly getRetryDelay: (attempt: number) => number;
 
-  constructor(model?: string) {
+  constructor(model?: string, options?: GeminiProviderOptions) {
     this.model = model || getGeminiModel();
+    this.maxRetries = options?.maxRetries ?? 2;
+    this.getRetryDelay = options?.getRetryDelay ?? ((attempt: number) => (attempt === 1 ? 500 : 1000));
   }
 
   getModelEndpoint(apiKey: string): string {
@@ -253,21 +262,56 @@ export class GeminiProvider implements AIProvider {
       };
 
       const endpoint = this.getModelEndpoint(apiKey);
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(10000),
-      });
+      const maxAttempts = 1 + this.maxRetries;
+      let attempt = 1;
+      let response: Response | null = null;
+      let lastStatus = 0;
+      let lastErrorBody = '';
 
-      if (!response.ok) {
-        const status = response.status;
-        let errorBody = '';
-        try {
-          errorBody = await response.text();
-        } catch {
-          errorBody = '<unable to read response body>';
+      while (attempt <= maxAttempts) {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (response.ok) {
+          break;
         }
+
+        lastStatus = response.status;
+        try {
+          lastErrorBody = await response.text();
+        } catch {
+          lastErrorBody = '<unable to read response body>';
+        }
+
+        const isTransient = lastStatus === 503 || lastStatus === 429;
+
+        if (isTransient && attempt < maxAttempts) {
+          const delayMs = this.getRetryDelay(attempt);
+
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(
+              `[GeminiProvider] Transient Gemini API error ${lastStatus} using model "${this.model}". Retrying attempt ${attempt + 1}/${maxAttempts} after ${delayMs}ms.`
+            );
+          }
+
+          if (delayMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+          attempt++;
+          continue;
+        }
+
+        // Non-transient error or exhausted all retry attempts
+        break;
+      }
+
+      if (!response || !response.ok) {
+        const status = lastStatus || response?.status || 500;
+        const errorBody = lastErrorBody;
 
         if (process.env.NODE_ENV === 'development') {
           const safeErrorBody = apiKey ? errorBody.split(apiKey).join('[REDACTED_API_KEY]') : errorBody;
@@ -289,6 +333,9 @@ export class GeminiProvider implements AIProvider {
         } else if (status === 429) {
           userMessage =
             'El asistente de orientación jurídica ha alcanzado su límite temporal de consultas simultáneas. Por favor intente nuevamente en unos instantes o comuníquese por WhatsApp.';
+        } else if (status === 503) {
+          userMessage =
+            'El servicio de asistencia jurídica se encuentra temporalmente con alta demanda. Por favor intente nuevamente en unos instantes o comuníquese por WhatsApp.';
         } else if (status >= 500) {
           userMessage =
             'El servicio de asistencia jurídica presenta intermitencia temporal en sus servidores. Le sugerimos reintentar en breve o comunicarse por WhatsApp.';

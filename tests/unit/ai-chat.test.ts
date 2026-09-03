@@ -388,7 +388,7 @@ describe('Phase 12.1 — AGORA AI Chat Engine & Gemini Provider Subsystem', () =
 
     it('GeminiProvider handles HTTP 429 (rate limit / quota exceeded) gracefully', async () => {
       process.env.AI_API_KEY = 'test-gemini-key';
-      const provider = new GeminiProvider();
+      const provider = new GeminiProvider(undefined, { getRetryDelay: () => 0 });
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 429,
