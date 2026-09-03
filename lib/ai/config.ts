@@ -4,6 +4,7 @@ export interface AIChatConfig {
   enabled: boolean;
   mode: AIChatMode;
   provider: AIProviderType;
+  geminiModel: string;
   maxUserMessageLength: number;
   maxHistoryTurns: number;
   availability: '24/7_automated';
@@ -34,16 +35,24 @@ export function getAIProviderType(): AIProviderType {
   return 'local'; // Default local grounded engine (no cloud API key needed for basic operation)
 }
 
+export const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
+
+export function getGeminiModel(): string {
+  return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+}
+
 export function getAIChatConfig(): AIChatConfig {
   const enabled = isAIChatEnabled();
   const mode = getAIChatMode();
   const provider = getAIProviderType();
   const privateSecret = getAIPrivateSecret();
+  const geminiModel = getGeminiModel();
 
   return {
     enabled,
     mode,
     provider,
+    geminiModel,
     maxUserMessageLength: 500,
     maxHistoryTurns: 10,
     availability: '24/7_automated',

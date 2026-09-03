@@ -1,5 +1,5 @@
 import { AIProvider, AIProviderType, ChatMessage, AIRequestContext, AIResponsePayload } from './types';
-import { getAIProviderType } from './config';
+import { getAIProviderType, getGeminiModel } from './config';
 import { aiKnowledgePolicy } from '@/content/ai/knowledge-policy';
 import { practices } from '@/content/practices';
 import { articles } from '@/content/articles';
@@ -202,6 +202,15 @@ export class LocalGroundingProvider implements AIProvider {
  */
 export class GeminiProvider implements AIProvider {
   type: AIProviderType = 'gemini';
+  readonly model: string;
+
+  constructor(model?: string) {
+    this.model = model || getGeminiModel();
+  }
+
+  getModelEndpoint(apiKey: string): string {
+    return `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${apiKey}`;
+  }
 
   async generateResponse(
     messages: ChatMessage[],
@@ -243,7 +252,7 @@ export class GeminiProvider implements AIProvider {
         },
       };
 
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const endpoint = this.getModelEndpoint(apiKey);
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -252,7 +261,44 @@ export class GeminiProvider implements AIProvider {
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API returned HTTP ${response.status}`);
+        const status = response.status;
+        let errorBody = '';
+        try {
+          errorBody = await response.text();
+        } catch {
+          errorBody = '<unable to read response body>';
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          const safeErrorBody = apiKey ? errorBody.split(apiKey).join('[REDACTED_API_KEY]') : errorBody;
+          console.error(
+            `[GeminiProvider] Gemini API error ${status} using model "${this.model}":`,
+            safeErrorBody
+          );
+        }
+
+        let userMessage =
+          'Ocurrió una interrupción temporal al conectar con el servicio de IA. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.';
+
+        if (status === 401 || status === 403) {
+          userMessage =
+            'El servicio de asistencia con IA presenta un inconveniente de autorización con el proveedor. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.';
+        } else if (status === 404) {
+          userMessage =
+            'El modelo de lenguaje configurado no se encuentra disponible actualmente. Puede comunicarse directamente con nuestros abogados a través de WhatsApp o vía telefónica.';
+        } else if (status === 429) {
+          userMessage =
+            'El asistente de orientación jurídica ha alcanzado su límite temporal de consultas simultáneas. Por favor intente nuevamente en unos instantes o comuníquese por WhatsApp.';
+        } else if (status >= 500) {
+          userMessage =
+            'El servicio de asistencia jurídica presenta intermitencia temporal en sus servidores. Le sugerimos reintentar en breve o comunicarse por WhatsApp.';
+        }
+
+        return {
+          content: userMessage,
+          actions: context.intentResult.suggestedActions,
+          intent: context.intentResult.intent,
+        };
       }
 
       const data = await response.json();
@@ -269,11 +315,27 @@ export class GeminiProvider implements AIProvider {
         actions: context.intentResult.suggestedActions,
         intent: context.intentResult.intent,
       };
-    } catch {
-      // Graceful error fallback without exposing internal API details
+    } catch (err: unknown) {
+      const isTimeout =
+        (err instanceof Error && err.name === 'TimeoutError') ||
+        (err instanceof DOMException && err.name === 'TimeoutError') ||
+        (err instanceof Error && err.message.toLowerCase().includes('timeout'));
+
+      if (process.env.NODE_ENV === 'development') {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const safeErrMsg = apiKey ? errMsg.split(apiKey).join('[REDACTED_API_KEY]') : errMsg;
+        console.error(
+          `[GeminiProvider] Network/Timeout error connecting to Gemini (${this.model}):`,
+          safeErrMsg
+        );
+      }
+
+      const userMessage = isTimeout
+        ? 'El servicio de asistencia jurídica tardó demasiado en responder. Le sugerimos reintentar su consulta o contactarnos directamente por WhatsApp.'
+        : 'Ocurrió una interrupción al conectar con el servicio de IA. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.';
+
       return {
-        content:
-          'Ocurrió una interrupción al conectar con el servicio de IA. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.',
+        content: userMessage,
         actions: context.intentResult.suggestedActions,
         intent: context.intentResult.intent,
       };

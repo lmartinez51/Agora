@@ -22,6 +22,16 @@ describe('Phase 12.1 — AGORA AI Chat Engine & Gemini Provider Subsystem', () =
   const originalApiKey = process.env.AI_API_KEY;
   const originalGeminiKey = process.env.GEMINI_API_KEY;
   const originalPrivateSecret = process.env.AI_CHAT_PRIVATE_SECRET;
+  const originalGeminiModel = process.env.GEMINI_MODEL;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  function setNodeEnv(value: string | undefined) {
+    if (value === undefined) {
+      delete (process.env as Record<string, string | undefined>).NODE_ENV;
+    } else {
+      (process.env as Record<string, string | undefined>).NODE_ENV = value;
+    }
+  }
 
   beforeEach(() => {
     delete process.env.NEXT_PUBLIC_AI_CHAT_ENABLED;
@@ -30,6 +40,7 @@ describe('Phase 12.1 — AGORA AI Chat Engine & Gemini Provider Subsystem', () =
     delete process.env.AI_API_KEY;
     delete process.env.GEMINI_API_KEY;
     delete process.env.AI_CHAT_PRIVATE_SECRET;
+    delete process.env.GEMINI_MODEL;
   });
 
   afterEach(() => {
@@ -50,6 +61,11 @@ describe('Phase 12.1 — AGORA AI Chat Engine & Gemini Provider Subsystem', () =
 
     if (originalPrivateSecret !== undefined) process.env.AI_CHAT_PRIVATE_SECRET = originalPrivateSecret;
     else delete process.env.AI_CHAT_PRIVATE_SECRET;
+
+    if (originalGeminiModel !== undefined) process.env.GEMINI_MODEL = originalGeminiModel;
+    else delete process.env.GEMINI_MODEL;
+
+    setNodeEnv(originalNodeEnv);
 
     vi.restoreAllMocks();
   });
@@ -305,7 +321,8 @@ describe('Phase 12.1 — AGORA AI Chat Engine & Gemini Provider Subsystem', () =
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const callArgs = mockFetch.mock.calls[0];
-      expect(callArgs[0]).toContain('gemini-1.5-flash');
+      expect(callArgs[0]).toContain('gemini-flash-latest');
+      expect(callArgs[0]).not.toContain('gemini-1.5-flash');
       expect(callArgs[0]).toContain('test-gemini-key');
 
       const requestBody = JSON.parse(callArgs[1].body);
@@ -316,11 +333,166 @@ describe('Phase 12.1 — AGORA AI Chat Engine & Gemini Provider Subsystem', () =
       expect(response.content).toContain('25 años de experiencia');
     });
 
-    it('GeminiProvider handles network errors gracefully without crashing', async () => {
+    it('GeminiProvider uses GEMINI_MODEL when configured', async () => {
+      process.env.GEMINI_MODEL = 'gemini-3.6-flash';
       process.env.AI_API_KEY = 'test-gemini-key';
       const provider = new GeminiProvider();
 
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network timeout'));
+      expect(provider.model).toBe('gemini-3.6-flash');
+      const endpoint = provider.getModelEndpoint('test-key');
+      expect(endpoint).toContain('gemini-3.6-flash');
+      expect(endpoint).not.toContain('gemini-1.5-flash');
+
+      delete process.env.GEMINI_MODEL;
+    });
+
+    it('GeminiProvider falls back to gemini-flash-latest when GEMINI_MODEL is absent and never uses gemini-1.5-flash', async () => {
+      delete process.env.GEMINI_MODEL;
+      const provider = new GeminiProvider();
+
+      expect(provider.model).toBe('gemini-flash-latest');
+      const endpoint = provider.getModelEndpoint('test-key');
+      expect(endpoint).toContain('gemini-flash-latest');
+      expect(endpoint).not.toContain('gemini-1.5-flash');
+    });
+
+    it('GeminiProvider handles HTTP 404 (model not found) with diagnostic logging and friendly message', async () => {
+      setNodeEnv('development');
+      process.env.AI_API_KEY = 'secret-key-123';
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const provider = new GeminiProvider('retired-model');
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: async () => 'models/retired-model is not found for API version v1beta',
+      });
+
+      const intent = detectIntent('Consulta');
+      const response = await provider.generateResponse(
+        [{ id: '1', role: 'user', content: 'Consulta', createdAt: Date.now() }],
+        {
+          mode: 'public',
+          userQuery: 'Consulta',
+          intentResult: intent,
+          groundedKnowledge: 'Knowledge',
+        }
+      );
+
+      expect(response.content).toContain('modelo de lenguaje configurado no se encuentra disponible');
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const loggedError = consoleErrorSpy.mock.calls[0][1];
+      expect(loggedError).toContain('retired-model is not found');
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('GeminiProvider handles HTTP 429 (rate limit / quota exceeded) gracefully', async () => {
+      process.env.AI_API_KEY = 'test-gemini-key';
+      const provider = new GeminiProvider();
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: async () => 'Resource exhausted: quota exceeded',
+      });
+
+      const intent = detectIntent('Consulta');
+      const response = await provider.generateResponse(
+        [{ id: '1', role: 'user', content: 'Consulta', createdAt: Date.now() }],
+        {
+          mode: 'public',
+          userQuery: 'Consulta',
+          intentResult: intent,
+          groundedKnowledge: 'Knowledge',
+        }
+      );
+
+      expect(response.content).toContain('límite temporal de consultas simultáneas');
+    });
+
+    it('GeminiProvider handles HTTP 401/403 authorization error gracefully', async () => {
+      process.env.AI_API_KEY = 'test-gemini-key';
+      const provider = new GeminiProvider();
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => 'API key invalid',
+      });
+
+      const intent = detectIntent('Consulta');
+      const response = await provider.generateResponse(
+        [{ id: '1', role: 'user', content: 'Consulta', createdAt: Date.now() }],
+        {
+          mode: 'public',
+          userQuery: 'Consulta',
+          intentResult: intent,
+          groundedKnowledge: 'Knowledge',
+        }
+      );
+
+      expect(response.content).toContain('inconveniente de autorización');
+    });
+
+    it('GeminiProvider redacts GEMINI_API_KEY from server error logs', async () => {
+      setNodeEnv('development');
+      const rawSecretKey = 'super-secret-gemini-key-xyz';
+      process.env.GEMINI_API_KEY = rawSecretKey;
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const provider = new GeminiProvider();
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => `Error details containing key: ${rawSecretKey}`,
+      });
+
+      const intent = detectIntent('Consulta');
+      await provider.generateResponse(
+        [{ id: '1', role: 'user', content: 'Consulta', createdAt: Date.now() }],
+        {
+          mode: 'public',
+          userQuery: 'Consulta',
+          intentResult: intent,
+          groundedKnowledge: 'Knowledge',
+        }
+      );
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const loggedError = consoleErrorSpy.mock.calls[0][1];
+      expect(loggedError).not.toContain(rawSecretKey);
+      expect(loggedError).toContain('[REDACTED_API_KEY]');
+
+      consoleErrorSpy.mockRestore();
+      delete process.env.GEMINI_API_KEY;
+    });
+
+    it('GeminiProvider handles network timeout errors with timeout-specific message', async () => {
+      process.env.AI_API_KEY = 'test-gemini-key';
+      const provider = new GeminiProvider();
+
+      const timeoutErr = new Error('The operation timed out');
+      timeoutErr.name = 'TimeoutError';
+      global.fetch = vi.fn().mockRejectedValue(timeoutErr);
+
+      const intent = detectIntent('Consulta');
+      const response = await provider.generateResponse(
+        [{ id: '1', role: 'user', content: 'Consulta', createdAt: Date.now() }],
+        {
+          mode: 'public',
+          userQuery: 'Consulta',
+          intentResult: intent,
+          groundedKnowledge: 'Knowledge',
+        }
+      );
+
+      expect(response.content).toContain('tardó demasiado en responder');
+      expect(response.actions?.length).toBeGreaterThan(0);
+    });
+
+    it('GeminiProvider handles general network errors gracefully without crashing', async () => {
+      process.env.AI_API_KEY = 'test-gemini-key';
+      const provider = new GeminiProvider();
+
+      global.fetch = vi.fn().mockRejectedValue(new Error('Connection reset by peer'));
 
       const intent = detectIntent('Consulta');
       const response = await provider.generateResponse(
