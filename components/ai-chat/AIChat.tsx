@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ChatMessage, AIChatAction } from '@/lib/ai/types';
 import { AIChatLauncher } from './AIChatLauncher';
 import { AIChatWindow } from './AIChatWindow';
@@ -9,6 +9,42 @@ export function AIChat(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const pilotTokenRef = useRef<string | null>(null);
+
+  // Pre-establish or refresh pilot session token in background
+  const ensureSession = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/ai-chat', {
+        method: 'GET',
+        credentials: 'same-origin',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.token) {
+          pilotTokenRef.current = data.token;
+          return data.token;
+        }
+      }
+    } catch {
+      // Ignore background session fetch errors
+    }
+    return pilotTokenRef.current;
+  }, []);
+
+  // Pre-warm session on component mount
+  useEffect(() => {
+    ensureSession();
+  }, [ensureSession]);
+
+  const handleToggle = useCallback(() => {
+    setIsOpen((prev) => {
+      const nextState = !prev;
+      if (nextState && !pilotTokenRef.current) {
+        ensureSession();
+      }
+      return nextState;
+    });
+  }, [ensureSession]);
 
   const handleSendMessage = useCallback(
     async (content: string) => {
@@ -23,12 +59,31 @@ export function AIChat(): React.ReactElement {
       setMessages(updatedHistory);
       setIsLoading(true);
 
-      try {
-        const response = await fetch('/api/ai-chat', {
+      const sendRequest = async (token?: string | null) => {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['x-agora-pilot-token'] = token;
+        }
+        return fetch('/api/ai-chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
+          credentials: 'same-origin',
           body: JSON.stringify({ messages: updatedHistory }),
         });
+      };
+
+      try {
+        let response = await sendRequest(pilotTokenRef.current);
+
+        // If session expired or missing (401), attempt transparent refresh once
+        if (response.status === 401) {
+          const freshToken = await ensureSession();
+          if (freshToken) {
+            response = await sendRequest(freshToken);
+          }
+        }
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -60,7 +115,7 @@ export function AIChat(): React.ReactElement {
         setIsLoading(false);
       }
     },
-    [messages]
+    [messages, ensureSession]
   );
 
   const handleActionClick = (action: AIChatAction) => {
@@ -77,7 +132,7 @@ export function AIChat(): React.ReactElement {
   return (
     <aside aria-label="Asistente virtual de orientación legal">
       {/* Floating launcher trigger */}
-      <AIChatLauncher isOpen={isOpen} onToggle={() => setIsOpen((prev) => !prev)} />
+      <AIChatLauncher isOpen={isOpen} onToggle={handleToggle} />
 
       {/* Floating interactive window */}
       <AIChatWindow

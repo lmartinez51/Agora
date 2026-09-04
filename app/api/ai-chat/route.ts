@@ -7,6 +7,74 @@ import { getAIProvider } from '@/lib/ai/provider';
 import { ChatMessage, AIRequestContext } from '@/lib/ai/types';
 import { checkRateLimit, isLocalhostRequest } from '@/lib/ai/ratelimit';
 import { createWhatsAppLink } from '@/lib/whatsapp';
+import {
+  createPilotSessionToken,
+  verifyPilotSessionToken,
+  PILOT_SESSION_COOKIE_NAME,
+  PILOT_SESSION_HEADER_NAME,
+  PILOT_SESSION_DEFAULT_MAX_AGE_SEC,
+} from '@/lib/ai/session';
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const config = getAIChatConfig();
+
+  // 1. If disabled
+  if (config.mode === 'disabled' || !config.enabled) {
+    return NextResponse.json(
+      { enabled: false, mode: 'disabled' },
+      { status: 200 }
+    );
+  }
+
+  // 2. Client-pilot mode session issuance
+  if (config.mode === 'client-pilot') {
+    // Check rate limit for session issuance
+    const rateLimit = checkRateLimit(req);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many session requests. Please wait a moment.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+        }
+      );
+    }
+
+    // Reject cross-site invocation
+    const secFetchSite = req.headers.get('sec-fetch-site');
+    if (secFetchSite === 'cross-site') {
+      return NextResponse.json(
+        { error: 'Cross-site session requests prohibited.' },
+        { status: 403 }
+      );
+    }
+
+    const token = createPilotSessionToken();
+    const response = NextResponse.json({
+      ok: true,
+      mode: 'client-pilot',
+      token,
+      maxAge: PILOT_SESSION_DEFAULT_MAX_AGE_SEC,
+    });
+
+    response.cookies.set(PILOT_SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: PILOT_SESSION_DEFAULT_MAX_AGE_SEC,
+    });
+
+    return response;
+  }
+
+  // 3. Other modes (private / public)
+  return NextResponse.json({
+    ok: true,
+    mode: config.mode,
+    enabled: config.enabled,
+  });
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -36,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 2. Private Mode Server-Side Authorization Check
+    // 2. Mode-Specific Access & Authorization Check
     if (config.mode === 'private') {
       const isDevLocal = process.env.NODE_ENV === 'development' && isLocalhostRequest(req);
 
@@ -51,6 +119,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             { status: 401 }
           );
         }
+      }
+    } else if (config.mode === 'client-pilot') {
+      // Reject cross-site invocation
+      const secFetchSite = req.headers.get('sec-fetch-site');
+      if (secFetchSite === 'cross-site') {
+        return NextResponse.json(
+          { error: 'Forbidden: Cross-site requests prohibited in client-pilot mode.' },
+          { status: 403 }
+        );
+      }
+
+      // Check pilot session token from cookie or header
+      const pilotToken =
+        req.cookies.get(PILOT_SESSION_COOKIE_NAME)?.value ||
+        req.headers.get(PILOT_SESSION_HEADER_NAME);
+
+      if (!pilotToken || !verifyPilotSessionToken(pilotToken)) {
+        return NextResponse.json(
+          {
+            error:
+              'Unauthorized: Client-pilot access requires an active session established through the website.',
+            code: 'PILOT_SESSION_REQUIRED',
+          },
+          { status: 401 }
+        );
       }
     }
 

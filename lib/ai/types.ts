@@ -1,6 +1,6 @@
 import { WhatsAppContext } from '@/types';
 
-export type AIChatMode = 'disabled' | 'private' | 'public';
+export type AIChatMode = 'disabled' | 'private' | 'client-pilot' | 'public';
 export type AIProviderType = 'local' | 'gemini' | 'openai' | 'unavailable';
 
 export interface AIChatAction {

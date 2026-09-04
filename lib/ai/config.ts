@@ -9,6 +9,7 @@ export interface AIChatConfig {
   maxHistoryTurns: number;
   availability: '24/7_automated';
   privateSecret?: string;
+  pilotSecret?: string;
 }
 
 export function isAIChatEnabled(): boolean {
@@ -17,7 +18,12 @@ export function isAIChatEnabled(): boolean {
 
 export function getAIChatMode(): AIChatMode {
   const envMode = process.env.AI_CHAT_MODE;
-  if (envMode === 'private' || envMode === 'public' || envMode === 'disabled') {
+  if (
+    envMode === 'private' ||
+    envMode === 'client-pilot' ||
+    envMode === 'public' ||
+    envMode === 'disabled'
+  ) {
     return envMode;
   }
   return isAIChatEnabled() ? 'public' : 'disabled';
@@ -25,6 +31,10 @@ export function getAIChatMode(): AIChatMode {
 
 export function getAIPrivateSecret(): string | undefined {
   return process.env.AI_CHAT_PRIVATE_SECRET;
+}
+
+export function getAIPilotSecret(): string | undefined {
+  return process.env.AI_CHAT_PILOT_SECRET || process.env.AI_CHAT_PRIVATE_SECRET;
 }
 
 export function getAIProviderType(): AIProviderType {
@@ -46,6 +56,7 @@ export function getAIChatConfig(): AIChatConfig {
   const mode = getAIChatMode();
   const provider = getAIProviderType();
   const privateSecret = getAIPrivateSecret();
+  const pilotSecret = getAIPilotSecret();
   const geminiModel = getGeminiModel();
 
   return {
@@ -57,5 +68,6 @@ export function getAIChatConfig(): AIChatConfig {
     maxHistoryTurns: 10,
     availability: '24/7_automated',
     privateSecret,
+    pilotSecret,
   };
 }
