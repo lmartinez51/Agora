@@ -4,8 +4,8 @@ import { createWhatsAppLink } from '@/lib/whatsapp';
 import { siteConfig } from '@/content/site';
 
 const PROMPT_INJECTION_PATTERNS = [
-  /ignore( all)? (previous|prior) (instructions|rules|prompts)/i,
-  /ignora( todas)? las (instrucciones|reglas|indicaciones)/i,
+  /ignore( all)? (?:previous|prior)?\s*(?:instructions|rules|prompts)/i,
+  /ignora( todas)? (?:las)?\s*(?:instrucciones|reglas|indicaciones)/i,
   /show( me)? (your|the) (system prompt|instructions|configuration)/i,
   /muestra(me)? (tu|el) (prompt|sistema|instrucciones|configuraci[oó]n)/i,
   /jailbreak/i,
@@ -135,10 +135,13 @@ export function checkInputGuardrails(userQuery: string): AIGuardrailCheck {
 }
 
 export function sanitizeOutputGuardrails(output: string): string {
-  // Strip any accidental attempt to claim attorney guarantees or model identity leaks
+  // Strip any accidental attempt to claim attorney guarantees, probability predictions,
+  // formal attorney-client relationships via web chat, or model identity leaks
   const sanitized = output
-    .replace(/garantizamos (ganar|el éxito|la victoria)/gi, 'evaluamos las posibilidades procesales de')
+    .replace(/(?:garantizo|garantizamos)\s+(?:que\s+)?(?:ganar|el\s+éxito|la\s+victoria|va\s+a\s+ganar|ganará)/gi, 'evaluamos las posibilidades procesales de')
     .replace(/resultado 100% seguro/gi, 'estrategia jurídica fundamentada')
+    .replace(/(?:probabilidad(?:es)?|chances?)\s+(?:de\s+ganar|de\s+éxito)\s+(?:del?\s+)?\d+%/gi, 'posibilidades procesales sujetas a evaluación judicial')
+    .replace(/(?:se\s+ha|queda)\s+(?:cread[oa]|establecid[oa]|iniciad[oa])\s+(?:un|una)\s+(?:vínculo|relación)\s+(?:formal\s+)?abogado-cliente/gi, 'esta orientación es informativa y no constituye relación formal abogado-cliente')
     .replace(/como modelo de lenguaje/gi, 'como asistente informativo de AGORA')
     .replace(/mi (prompt|instrucción del sistema)/gi, 'la información verificada de AGORA');
 

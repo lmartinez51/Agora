@@ -1,4 +1,4 @@
-import { AIProvider, AIProviderType, ChatMessage, AIRequestContext, AIResponsePayload } from './types';
+import { AIProvider, AIProviderType, ChatMessage, AIRequestContext, AIResponsePayload, AIChatAction } from './types';
 import { getAIProviderType, getGeminiModel } from './config';
 import { aiKnowledgePolicy } from '@/content/ai/knowledge-policy';
 import { practices } from '@/content/practices';
@@ -7,6 +7,7 @@ import { generalFaqs } from '@/content/faqs';
 import { siteConfig } from '@/content/site';
 import { sanitizeOutputGuardrails } from './guardrails';
 import { createWhatsAppLink } from '@/lib/whatsapp';
+import { getSystemPromptKnowledge } from './knowledge';
 
 export interface GeminiContentTurn {
   role: 'user' | 'model';
@@ -121,7 +122,7 @@ export class LocalGroundingProvider implements AIProvider {
     }
 
     // 3. Foreigners / International matching
-    if (context.intentResult.intent === 'foreigners') {
+    if (context.intentResult.intent === 'foreigners' || context.intentResult.intent === 'foreign_client') {
       const content = isEnglish
         ? 'AGORA, ABOGADOS provides legal counsel for foreign individuals, international investors, and cross-border companies operating in Mexico. Our practice covers civil, commercial, and constitutional amparo proceedings under Mexican federal and state law. Consultations are available online via Google Meet or in person in Ciudad Juárez.'
         : 'AGORA, ABOGADOS cuenta con atención especializada para personas extranjeras y empresas transfronterizas con intereses o controversias en México. Brindamos asesoría en derecho civil, mercantil y juicio de amparo bajo la legislación mexicana, con opción de consulta remota por Google Meet.';
@@ -129,7 +130,7 @@ export class LocalGroundingProvider implements AIProvider {
       return {
         content: sanitizeOutputGuardrails(content),
         actions: context.intentResult.suggestedActions,
-        intent: 'foreigners',
+        intent: 'foreign_client',
       };
     }
 
@@ -147,18 +148,90 @@ export class LocalGroundingProvider implements AIProvider {
     }
 
     // 5. Business / Commercial matching
-    if (context.intentResult.intent === 'business') {
+    if (context.intentResult.intent === 'business' || context.intentResult.intent === 'business_client') {
       const content =
         'En materia mercantil y corporativa, asesoramos a empresas locales y transfronterizas en litigio comercial, resolución de controversias, incumplimiento de contratos y juicios ejecutivos mercantiles en Ciudad Juárez y tribunales federales.';
 
       return {
         content: sanitizeOutputGuardrails(content),
         actions: context.intentResult.suggestedActions,
-        intent: 'business',
+        intent: 'business_client',
       };
     }
 
-    // 6. Article / Knowledge matching
+    // 6. Attorney info matching (pending boundaries)
+    if (context.intentResult.intent === 'attorney_info') {
+      const content =
+        'El equipo de AGORA, ABOGADOS está integrado por 7 profesionales del derecho: 2 socios directores y 5 abogados asociados. Los nombres, semblanzas biográficas individuales y asignaciones de especialidad se encuentran en proceso formal de confirmación y publicación por la firma. Nuestro equipo atiende de manera colegiada las cinco áreas de práctica confirmadas.';
+
+      return {
+        content: sanitizeOutputGuardrails(content),
+        actions: context.intentResult.suggestedActions,
+        intent: 'attorney_info',
+      };
+    }
+
+    // 7. Firm info matching (anti-extrapolation)
+    if (context.intentResult.intent === 'firm_info') {
+      const content =
+        'AGORA, ABOGADOS es una firma legal con 25 años de trayectoria institucional en Ciudad Juárez, Chihuahua, con práctica en cinco áreas del derecho mexicano: Civil, Mercantil, Familiar, Penal y Juicio de Amparo. Cuenta con un equipo profesional de 7 abogados en total (2 socios directores y 5 asociados).';
+
+      return {
+        content: sanitizeOutputGuardrails(content),
+        actions: context.intentResult.suggestedActions,
+        intent: 'firm_info',
+      };
+    }
+
+    // 8. High Risk / Legal Safety Inquiries
+    if (context.intentResult.intent === 'high_risk') {
+      const content =
+        'Como asistente virtual informativo de AGORA, ABOGADOS, no emito dictámenes jurídicos concluyentes ni garantizo resoluciones judiciales ni porcentajes de éxito. Todo asunto procesal requiere una valoración técnica e individualizada de los hechos y constancias por parte de un abogado calificado.';
+
+      return {
+        content: sanitizeOutputGuardrails(content),
+        actions: context.intentResult.suggestedActions,
+        intent: 'high_risk',
+      };
+    }
+
+    // 9. Personal Legal Situation
+    if (context.intentResult.intent === 'personal_legal_situation') {
+      const content =
+        'Comprendo la situación que describe. De forma general y conforme al marco legal mexicano, estos asuntos se rigen por las disposiciones legales de la materia correspondiente. Para revisar la documentación específica y definir una estrategia procesal adecuada, le recomendamos formalizar una consulta jurídica con nuestros abogados.';
+
+      return {
+        content: sanitizeOutputGuardrails(content),
+        actions: context.intentResult.suggestedActions,
+        intent: 'personal_legal_situation',
+      };
+    }
+
+    // 10. Unsupported / Extrapolated inquiries
+    if (context.intentResult.intent === 'unsupported') {
+      const content =
+        'La información consultada no forma parte de los datos institucionales verificados de AGORA, ABOGADOS. Nuestra firma orienta exclusivamente con base en información confirmada sobre sus 5 áreas de práctica, trayectoria y canales oficiales de atención.';
+
+      return {
+        content: sanitizeOutputGuardrails(content),
+        actions: context.intentResult.suggestedActions,
+        intent: 'unsupported',
+      };
+    }
+
+    // 11. Greeting intent
+    if (context.intentResult.intent === 'greeting') {
+      const content =
+        'Hola. Soy el asistente informativo de AGORA, ABOGADOS. Puedo orientarle sobre nuestras cinco áreas de práctica jurídica, proceso de consulta y publicaciones legales. ¿En qué tema jurídico requiere orientación?';
+
+      return {
+        content: sanitizeOutputGuardrails(content),
+        actions: context.intentResult.suggestedActions,
+        intent: 'greeting',
+      };
+    }
+
+    // 12. Article / Knowledge matching
     if (context.intentResult.intent === 'article') {
       const titles = articles.map((a) => `"${a.title}"`).join(', ');
       const content = `En nuestro Centro de Conocimiento compartimos análisis jurídicos y guías procesales sobre el marco legal mexicano. Publicaciones recientes incluyen: ${titles}.`;
@@ -170,7 +243,7 @@ export class LocalGroundingProvider implements AIProvider {
       };
     }
 
-    // 7. General FAQs matching
+    // 13. General FAQs matching
     for (const faq of generalFaqs) {
       const faqWords = faq.question.toLowerCase().split(' ');
       const matches = faqWords.filter((w) => w.length > 4 && lowerQuery.includes(w));
@@ -183,7 +256,7 @@ export class LocalGroundingProvider implements AIProvider {
       }
     }
 
-    // 8. Default Firm Overview
+    // 14. Default General Info Fallback
     const defaultResponse = isEnglish
       ? `AGORA, ABOGADOS is a legal firm based in Ciudad Juárez, Chihuahua, Mexico, with 25 years of professional experience across 5 practice areas: Civil, Commercial, Family, Criminal Defense, and Constitutional Amparo. We have a team of 7 lawyers (2 managing partners and 5 associates). How may we assist your legal inquiry?`
       : `AGORA, ABOGADOS es una firma legal con sede en Ciudad Juárez, Chihuahua, con 25 años de trayectoria profesional en 5 áreas del derecho mexicano: Civil, Mercantil, Familiar, Penal y Juicio de Amparo. Contamos con un equipo de 7 abogados (2 socios directores y 5 asociados). ¿En qué área jurídica o trámite requiere orientación?`;
@@ -249,17 +322,21 @@ export class GeminiProvider implements AIProvider {
         };
       }
 
-      const payload = {
+      const systemInstructionText = context?.groundedKnowledge || getSystemPromptKnowledge();
+      const payload: Record<string, unknown> = {
         contents,
-        systemInstruction: {
-          parts: [{ text: context.groundedKnowledge }],
-        },
         generationConfig: {
           temperature: 0.2,
           topP: 0.8,
           maxOutputTokens: 500,
         },
       };
+
+      if (systemInstructionText && systemInstructionText.trim().length > 0) {
+        payload.systemInstruction = {
+          parts: [{ text: systemInstructionText }],
+        };
+      }
 
       const endpoint = this.getModelEndpoint(apiKey);
       const maxAttempts = 1 + this.maxRetries;
@@ -341,9 +418,22 @@ export class GeminiProvider implements AIProvider {
             'El servicio de asistencia jurídica presenta intermitencia temporal en sus servidores. Le sugerimos reintentar en breve o comunicarse por WhatsApp.';
         }
 
+        const fallbackErrorActions: AIChatAction[] = [
+          {
+            type: 'whatsapp',
+            label: 'Contactar por WhatsApp',
+            href: createWhatsAppLink({ context: 'general' }),
+            isExternal: true,
+          },
+        ];
+        const errorActions =
+          context.intentResult.suggestedActions && context.intentResult.suggestedActions.length > 0
+            ? context.intentResult.suggestedActions
+            : fallbackErrorActions;
+
         return {
           content: userMessage,
-          actions: context.intentResult.suggestedActions,
+          actions: errorActions,
           intent: context.intentResult.intent,
         };
       }
@@ -381,9 +471,22 @@ export class GeminiProvider implements AIProvider {
         ? 'El servicio de asistencia jurídica tardó demasiado en responder. Le sugerimos reintentar su consulta o contactarnos directamente por WhatsApp.'
         : 'Ocurrió una interrupción al conectar con el servicio de IA. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.';
 
+      const fallbackErrorActions: AIChatAction[] = [
+        {
+          type: 'whatsapp',
+          label: 'Contactar por WhatsApp',
+          href: createWhatsAppLink({ context: 'general' }),
+          isExternal: true,
+        },
+      ];
+      const errorActions =
+        context.intentResult.suggestedActions && context.intentResult.suggestedActions.length > 0
+          ? context.intentResult.suggestedActions
+          : fallbackErrorActions;
+
       return {
         content: userMessage,
-        actions: context.intentResult.suggestedActions,
+        actions: errorActions,
         intent: context.intentResult.intent,
       };
     }

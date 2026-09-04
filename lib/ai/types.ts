@@ -23,14 +23,23 @@ export interface ChatMessage {
 
 export type AIIntentType =
   | 'general_info'
+  | 'greeting'
+  | 'firm_info'
   | 'practice_area'
+  | 'attorney_info'
   | 'foreigners'
+  | 'foreign_client'
   | 'business'
+  | 'business_client'
   | 'booking'
   | 'contact'
   | 'article'
+  | 'general_legal_info'
+  | 'personal_legal_situation'
   | 'urgent_matter'
   | 'sensitive_info'
+  | 'unsupported'
+  | 'high_risk'
   | 'out_of_scope';
 
 export interface AIIntentResult {
