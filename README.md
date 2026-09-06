@@ -17,7 +17,7 @@ Este repositorio contiene la plataforma digital y arquitectura web para la firma
 - **Framework:** Next.js 14 (App Router, React Server Components por defecto)
 - **Lenguaje:** TypeScript (Strict Mode)
 - **Estilos:** Tailwind CSS con tokens de diseño semánticos
-- **AI Engine:** Orientador Jurídico IA con arquitectura de guardrails, rate limiting en memoria y proveedor Google Gemini (con fallback determinista local)
+- **AI Engine:** Orientador Jurídico IA con arquitectura de guardrails, rate limiting en memoria y motor multi-proveedor desacoplado (Google Gemini y OpenAI Responses API, con fallback determinista local)
 - **Testing:** Vitest (Pruebas unitarias, integración y evaluación del subsistema de IA)
 - **Iconografía:** Lucide React (Vectorial, ligera y accesible)
 - **SEO:** Generación nativa de metadatos dinámicos, `sitemap.xml`, `robots.txt` y JSON-LD estructurado (`LegalService`)
@@ -54,9 +54,14 @@ Variables disponibles:
 - `NEXT_PUBLIC_SITE_URL`: URL base del sitio para canónicos y sitemaps (por defecto `http://localhost:3000`).
 - `NEXT_PUBLIC_BOOKING_URL`: URL pública del Google Calendar Appointment Schedule. Si no se configura, el sistema activa automáticamente el componente de respaldo (*fallback*) con canalización directa a WhatsApp.
 - `NEXT_PUBLIC_AI_CHAT_ENABLED`: Activa/desactiva la interfaz del chat con IA (`true` | `false`).
-- `AI_CHAT_MODE`: Modo de operación del motor de IA (`disabled` | `private` | `public`).
-- `AI_PROVIDER`: Proveedor de inferencia (`local` | `gemini` | `unavailable`).
+- `AI_CHAT_MODE`: Modo de operación del motor de IA (`disabled` | `private` | `client-pilot` | `public`).
+- `AI_CHAT_PRIVATE_SECRET`: Secreto de servidor para autorización en modo `private` (vía cabecera `x-agora-ai-auth`).
+- `AI_CHAT_PILOT_SECRET`: Secreto de servidor para firmas HMAC de sesiones de pilotaje temporal (`client-pilot`).
+- `AI_PROVIDER`: Proveedor de inferencia (`local` | `gemini` | `openai` | `unavailable`).
 - `GEMINI_API_KEY`: Clave de API de Google Gemini para respuestas generativas en vivo.
+- `GEMINI_MODEL`: Identificador de modelo para Google Gemini (por defecto `gemini-flash-latest`).
+- `OPENAI_API_KEY`: Clave de API de OpenAI para el proveedor OpenAI Responses API.
+- `OPENAI_MODEL`: Identificador de modelo para OpenAI Responses API (por defecto `gpt-5.6-luna`).
 
 ---
 
