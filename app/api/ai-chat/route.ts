@@ -200,7 +200,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const latestUserMsg = messages[messages.length - 1];
+    // SEC-04: Client message role trust boundary. Clients may only submit 'user' or 'assistant'
+    // conversation turns. Any client message claiming 'system' role is remapped to 'user'
+    // so it can never be treated as trusted system instructions.
+    const sanitizedMessages: ChatMessage[] = messages.map((m) => ({
+      ...m,
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+    }));
+
+    const latestUserMsg = sanitizedMessages[sanitizedMessages.length - 1];
 
     if (!latestUserMsg || typeof latestUserMsg.content !== 'string') {
       return NextResponse.json(
@@ -257,9 +265,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       groundedKnowledge,
     };
 
-    // 8. Provider Inference Execution (Local or Gemini)
+    // 8. Provider Inference Execution (Local, Gemini, or OpenAI)
     const provider = getAIProvider();
-    const responsePayload = await provider.generateResponse(messages, requestContext);
+    const responsePayload = await provider.generateResponse(sanitizedMessages, requestContext);
 
     // 9. Combine Intent Actions if none provided by inference
     const combinedActions = responsePayload.actions || intentResult.suggestedActions;

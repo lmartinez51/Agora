@@ -526,19 +526,17 @@ export function normalizeOpenAIResponsesInput(
   }
 
   const recent = messages.slice(-6);
-  let finalInstructions = baseInstructions;
   const conversationalTurns: Array<{ role: 'user' | 'assistant'; text: string }> = [];
 
   for (const msg of recent) {
     if (typeof msg.content === 'string') {
       const trimmed = msg.content.trim();
       if (trimmed.length > 0) {
-        if (msg.role === 'system') {
-          // System messages are preserved and appended to the instructions field
-          if (!finalInstructions.includes(trimmed)) {
-            finalInstructions = finalInstructions ? `${finalInstructions}\n\n${trimmed}` : trimmed;
-          }
-        } else if (msg.role === 'assistant') {
+        // SEC-BOUNDARY: Client-controlled conversational messages must NEVER be promoted
+        // to system/developer-level instructions. Any message in the conversational history
+        // array (even if claiming role: 'system') remains strictly user-controlled conversational content.
+        // Trusted system instructions originate exclusively from server-side baseInstructions.
+        if (msg.role === 'assistant') {
           conversationalTurns.push({ role: 'assistant', text: trimmed });
         } else {
           conversationalTurns.push({ role: 'user', text: trimmed });
@@ -550,7 +548,7 @@ export function normalizeOpenAIResponsesInput(
   // Drop leading assistant turns so conversation starts with user
   const firstUserIndex = conversationalTurns.findIndex((t) => t.role === 'user');
   if (firstUserIndex === -1) {
-    return { instructions: finalInstructions, input: [] };
+    return { instructions: baseInstructions, input: [] };
   }
   const fromFirstUser = conversationalTurns.slice(firstUserIndex);
 
@@ -569,7 +567,7 @@ export function normalizeOpenAIResponsesInput(
   }
 
   return {
-    instructions: finalInstructions,
+    instructions: baseInstructions,
     input: coalesced,
   };
 }
