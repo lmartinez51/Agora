@@ -138,7 +138,7 @@ export function sanitizeOutputGuardrails(output: string): string {
   // Strip any accidental attempt to claim attorney guarantees, probability predictions,
   // formal attorney-client relationships via web chat, or model identity leaks
   const sanitized = output
-    .replace(/(?:garantizo|garantizamos)\s+(?:que\s+)?(?:ganar|el\s+éxito|la\s+victoria|va\s+a\s+ganar|ganará)/gi, 'evaluamos las posibilidades procesales de')
+    .replace(/(?:garantizo|garantiza|garantizamos)\s+(?:que\s+)?(?:ganar|el\s+éxito|la\s+victoria|va\s+a\s+ganar|ganará)/gi, 'evaluamos las posibilidades procesales de')
     .replace(/resultado 100% seguro/gi, 'estrategia jurídica fundamentada')
     .replace(/(?:probabilidad(?:es)?|chances?)\s+(?:de\s+ganar|de\s+éxito)\s+(?:del?\s+)?\d+%/gi, 'posibilidades procesales sujetas a evaluación judicial')
     .replace(/(?:se\s+ha|queda)\s+(?:cread[oa]|establecid[oa]|iniciad[oa])\s+(?:un|una)\s+(?:vínculo|relación)\s+(?:formal\s+)?abogado-cliente/gi, 'esta orientación es informativa y no constituye relación formal abogado-cliente')

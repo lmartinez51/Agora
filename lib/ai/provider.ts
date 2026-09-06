@@ -1,5 +1,5 @@
 import { AIProvider, AIProviderType, ChatMessage, AIRequestContext, AIResponsePayload, AIChatAction } from './types';
-import { getAIProviderType, getGeminiModel } from './config';
+import { getAIProviderType, getGeminiModel, getOpenAIModel } from './config';
 import { aiKnowledgePolicy } from '@/content/ai/knowledge-policy';
 import { practices } from '@/content/practices';
 import { articles } from '@/content/articles';
@@ -494,7 +494,376 @@ export class GeminiProvider implements AIProvider {
 }
 
 /**
- * 3. Unavailable Provider Fallback
+ * 3. OpenAI Responses API Provider
+ * Connects securely server-side to the OpenAI Responses API (https://api.openai.com/v1/responses).
+ */
+export interface OpenAIResponsesMessageTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface NormalizedOpenAIResponsesInput {
+  instructions: string;
+  input: OpenAIResponsesMessageTurn[];
+}
+
+/**
+ * Normalizes messages for the OpenAI Responses API.
+ * - Slices up to the last 6 messages.
+ * - Drops empty or non-string messages.
+ * - Maps roles explicitly: 'assistant' -> 'assistant', 'user' -> 'user'.
+ * - Any 'system' messages in the conversation array are audited: their content is preserved
+ *   and appended to the canonical base instructions so NO system instruction is ever lost.
+ * - Drops leading 'assistant' turns so the conversational input always starts with 'user'.
+ * - Coalesces consecutive turns of the same role into a single turn separated by newline.
+ */
+export function normalizeOpenAIResponsesInput(
+  messages: ChatMessage[],
+  baseInstructions: string
+): NormalizedOpenAIResponsesInput {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return { instructions: baseInstructions, input: [] };
+  }
+
+  const recent = messages.slice(-6);
+  let finalInstructions = baseInstructions;
+  const conversationalTurns: Array<{ role: 'user' | 'assistant'; text: string }> = [];
+
+  for (const msg of recent) {
+    if (typeof msg.content === 'string') {
+      const trimmed = msg.content.trim();
+      if (trimmed.length > 0) {
+        if (msg.role === 'system') {
+          // System messages are preserved and appended to the instructions field
+          if (!finalInstructions.includes(trimmed)) {
+            finalInstructions = finalInstructions ? `${finalInstructions}\n\n${trimmed}` : trimmed;
+          }
+        } else if (msg.role === 'assistant') {
+          conversationalTurns.push({ role: 'assistant', text: trimmed });
+        } else {
+          conversationalTurns.push({ role: 'user', text: trimmed });
+        }
+      }
+    }
+  }
+
+  // Drop leading assistant turns so conversation starts with user
+  const firstUserIndex = conversationalTurns.findIndex((t) => t.role === 'user');
+  if (firstUserIndex === -1) {
+    return { instructions: finalInstructions, input: [] };
+  }
+  const fromFirstUser = conversationalTurns.slice(firstUserIndex);
+
+  // Coalesce consecutive turns of the same role
+  const coalesced: OpenAIResponsesMessageTurn[] = [];
+  for (const turn of fromFirstUser) {
+    const last = coalesced[coalesced.length - 1];
+    if (last && last.role === turn.role) {
+      last.content += `\n${turn.text}`;
+    } else {
+      coalesced.push({
+        role: turn.role,
+        content: turn.text,
+      });
+    }
+  }
+
+  return {
+    instructions: finalInstructions,
+    input: coalesced,
+  };
+}
+
+/**
+ * Strictly parses the OpenAI Responses API response structure.
+ * Targets:
+ * - output_text convenience field
+ * - output array containing message items with output_text or text content parts
+ * Rejects legacy Chat Completions `choices` structures completely.
+ */
+export function extractResponsesApiText(data: unknown): string | null {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const record = data as Record<string, unknown>;
+
+  // 1. Direct output_text convenience property on Responses API response
+  if (typeof record.output_text === 'string') {
+    const trimmed = record.output_text.trim();
+    if (trimmed.length > 0) return trimmed;
+  }
+
+  // 2. Structured output items array in Responses API
+  if (Array.isArray(record.output)) {
+    for (const item of record.output) {
+      if (item && typeof item === 'object') {
+        const itemObj = item as Record<string, unknown>;
+        if (itemObj.type === 'message' && Array.isArray(itemObj.content)) {
+          for (const part of itemObj.content) {
+            if (part && typeof part === 'object') {
+              const partObj = part as Record<string, unknown>;
+              if (
+                (partObj.type === 'output_text' || partObj.type === 'text') &&
+                typeof partObj.text === 'string'
+              ) {
+                const trimmed = partObj.text.trim();
+                if (trimmed.length > 0) return trimmed;
+              }
+            }
+          }
+        }
+        if (typeof itemObj.content === 'string') {
+          const trimmed = itemObj.content.trim();
+          if (trimmed.length > 0) return trimmed;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Identifies transient HTTP status codes appropriate for retry in the OpenAI Responses API.
+ * 429: Rate limit / temporary concurrency limit
+ * 500: Internal server error
+ * 502: Bad gateway
+ * 503: Service unavailable / high demand
+ * 504: Gateway timeout
+ */
+export function isOpenAITransientStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+export interface OpenAIProviderOptions {
+  maxRetries?: number;
+  getRetryDelay?: (attempt: number) => number;
+}
+
+export class OpenAIProvider implements AIProvider {
+  type: AIProviderType = 'openai';
+  readonly model: string;
+  readonly maxRetries: number;
+  private readonly getRetryDelay: (attempt: number) => number;
+
+  constructor(model?: string, options?: OpenAIProviderOptions) {
+    this.model = model || getOpenAIModel();
+    this.maxRetries = options?.maxRetries ?? 2;
+    this.getRetryDelay = options?.getRetryDelay ?? ((attempt: number) => (attempt === 1 ? 500 : 1000));
+  }
+
+  getResponsesEndpoint(): string {
+    return 'https://api.openai.com/v1/responses';
+  }
+
+  async generateResponse(
+    messages: ChatMessage[],
+    context: AIRequestContext
+  ): Promise<AIResponsePayload> {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      const fallbackErrorActions: AIChatAction[] = [
+        {
+          type: 'whatsapp',
+          label: 'Contactar por WhatsApp',
+          href: createWhatsAppLink({ context: 'general' }),
+          isExternal: true,
+        },
+      ];
+      const actions =
+        context.intentResult.suggestedActions && context.intentResult.suggestedActions.length > 0
+          ? context.intentResult.suggestedActions
+          : fallbackErrorActions;
+
+      return {
+        content:
+          'El asistente virtual no tiene una clave de acceso configurada en el servidor para OpenAI. Puede comunicarse directamente con AGORA, ABOGADOS por WhatsApp.',
+        actions,
+        intent: context.intentResult.intent,
+      };
+    }
+
+    try {
+      const baseInstructions = context?.groundedKnowledge || getSystemPromptKnowledge();
+      const normalized = normalizeOpenAIResponsesInput(messages, baseInstructions);
+
+      if (normalized.input.length === 0) {
+        return {
+          content:
+            'Por favor ingrese una consulta válida para que el asistente pueda orientarle.',
+          actions: context.intentResult.suggestedActions,
+          intent: context.intentResult.intent,
+        };
+      }
+
+      const payload: Record<string, unknown> = {
+        model: this.model,
+        instructions: normalized.instructions,
+        input: normalized.input,
+      };
+
+      const endpoint = this.getResponsesEndpoint();
+      const maxAttempts = 1 + this.maxRetries;
+      let attempt = 1;
+      let response: Response | null = null;
+      let lastStatus = 0;
+      let lastErrorBody = '';
+
+      while (attempt <= maxAttempts) {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (response.ok) {
+          break;
+        }
+
+        lastStatus = response.status;
+        try {
+          lastErrorBody = await response.text();
+        } catch {
+          lastErrorBody = '<unable to read response body>';
+        }
+
+        const isTransient = isOpenAITransientStatus(lastStatus);
+
+        if (isTransient && attempt < maxAttempts) {
+          const delayMs = this.getRetryDelay(attempt);
+
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(
+              `[OpenAIProvider] Transient error ${lastStatus} using Responses API (${this.model}). Retrying attempt ${attempt + 1}/${maxAttempts} after ${delayMs}ms.`
+            );
+          }
+
+          if (delayMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+          attempt++;
+          continue;
+        }
+
+        // Non-transient error (400, 401, 403, 404, etc.) or exhausted retries
+        break;
+      }
+
+      if (!response || !response.ok) {
+        const status = lastStatus || response?.status || 500;
+        const errorBody = lastErrorBody;
+
+        if (process.env.NODE_ENV === 'development') {
+          const safeErrorBody = apiKey ? errorBody.split(apiKey).join('[REDACTED_API_KEY]') : errorBody;
+          console.error(
+            `[OpenAIProvider] OpenAI Responses API error ${status} using model "${this.model}":`,
+            safeErrorBody
+          );
+        }
+
+        let userMessage =
+          'Ocurrió una interrupción temporal al conectar con el servicio de IA. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.';
+
+        if (status === 401 || status === 403) {
+          userMessage =
+            'El servicio de asistencia con IA presenta un inconveniente de autorización con el proveedor. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.';
+        } else if (status === 404) {
+          userMessage =
+            'El modelo de lenguaje configurado no se encuentra disponible actualmente o no es compatible con la Responses API. Puede comunicarse directamente con nuestros abogados a través de WhatsApp o vía telefónica.';
+        } else if (status === 429) {
+          userMessage =
+            'El asistente de orientación jurídica ha alcanzado su límite temporal de consultas simultáneas. Por favor intente nuevamente en unos instantes o comuníquese por WhatsApp.';
+        } else if (status === 503) {
+          userMessage =
+            'El servicio de asistencia jurídica se encuentra temporalmente con alta demanda. Por favor intente nuevamente en unos instantes o comuníquese por WhatsApp.';
+        } else if (status >= 500) {
+          userMessage =
+            'El servicio de asistencia jurídica presenta intermitencia temporal en sus servidores. Le sugerimos reintentar en breve o comunicarse por WhatsApp.';
+        }
+
+        const fallbackErrorActions: AIChatAction[] = [
+          {
+            type: 'whatsapp',
+            label: 'Contactar por WhatsApp',
+            href: createWhatsAppLink({ context: 'general' }),
+            isExternal: true,
+          },
+        ];
+        const errorActions =
+          context.intentResult.suggestedActions && context.intentResult.suggestedActions.length > 0
+            ? context.intentResult.suggestedActions
+            : fallbackErrorActions;
+
+        return {
+          content: userMessage,
+          actions: errorActions,
+          intent: context.intentResult.intent,
+        };
+      }
+
+      const data = await response.json();
+      const rawText = extractResponsesApiText(data);
+
+      if (!rawText) {
+        throw new Error('Empty or malformed OpenAI Responses API response');
+      }
+
+      const cleanContent = sanitizeOutputGuardrails(rawText.trim());
+
+      return {
+        content: cleanContent,
+        actions: context.intentResult.suggestedActions,
+        intent: context.intentResult.intent,
+      };
+    } catch (err: unknown) {
+      const isTimeout =
+        (err instanceof Error && err.name === 'TimeoutError') ||
+        (err instanceof DOMException && err.name === 'TimeoutError') ||
+        (err instanceof Error && err.message.toLowerCase().includes('timeout'));
+
+      if (process.env.NODE_ENV === 'development') {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const safeErrMsg = apiKey ? errMsg.split(apiKey).join('[REDACTED_API_KEY]') : errMsg;
+        console.error(
+          `[OpenAIProvider] Network/Timeout error connecting to OpenAI Responses API (${this.model}):`,
+          safeErrMsg
+        );
+      }
+
+      const userMessage = isTimeout
+        ? 'El servicio de asistencia jurídica tardó demasiado en responder. Le sugerimos reintentar su consulta o contactarnos directamente por WhatsApp.'
+        : 'Ocurrió una interrupción al conectar con el servicio de IA. Le invitamos a contactar directamente a nuestros abogados por WhatsApp o vía telefónica.';
+
+      const fallbackErrorActions: AIChatAction[] = [
+        {
+          type: 'whatsapp',
+          label: 'Contactar por WhatsApp',
+          href: createWhatsAppLink({ context: 'general' }),
+          isExternal: true,
+        },
+      ];
+      const errorActions =
+        context.intentResult.suggestedActions && context.intentResult.suggestedActions.length > 0
+          ? context.intentResult.suggestedActions
+          : fallbackErrorActions;
+
+      return {
+        content: userMessage,
+        actions: errorActions,
+        intent: context.intentResult.intent,
+      };
+    }
+  }
+}
+
+/**
+ * 4. Unavailable Provider Fallback
  */
 export class UnavailableProvider implements AIProvider {
   type: AIProviderType = 'unavailable';
@@ -531,6 +900,8 @@ export function getAIProvider(): AIProvider {
   switch (providerType) {
     case 'gemini':
       return new GeminiProvider();
+    case 'openai':
+      return new OpenAIProvider();
     case 'unavailable':
       return new UnavailableProvider();
     case 'local':
