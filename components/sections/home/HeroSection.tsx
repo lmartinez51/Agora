@@ -11,24 +11,23 @@ export function HeroSection(): React.ReactElement {
       className="relative w-full bg-[#0B0D13] border-b border-white/10 overflow-hidden lg:aspect-[1920/705]"
       aria-label="Introducción institucional de AGORA"
     >
-      {/* Background Visual Layer: 3D Metallic AGORA Logo Composition */}
-      <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
+      {/* Background Visual Layer: Desktop 3D Metallic AGORA Logo Composition (Preserved strictly for >=1024px) */}
+      <div className="hidden lg:block absolute inset-0 z-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
         <picture className="w-full h-full block">
-          {/* Responsive source: ready for dedicated mobile visual (e.g. /images/agora-hero-mobile.webp) when available */}
-          {/* <source media="(max-width: 767px)" srcSet="/images/agora-hero-mobile.webp" /> */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/agora-hero-bg-1920x705.webp"
             alt=""
             role="presentation"
             decoding="async"
-            className="w-full h-full object-cover object-[76%_center] lg:object-contain select-none pointer-events-none"
+            className="w-full h-full lg:object-contain select-none pointer-events-none"
           />
         </picture>
       </div>
 
       {/* Hero Content Layer */}
-      <Container size="xl" className="relative z-10 h-full flex flex-col justify-center">
-        <div className="pt-12 pb-16 sm:pt-16 sm:pb-20 lg:py-0 h-full flex flex-col justify-center">
+      <Container size="xl" className="relative z-10 lg:h-full flex flex-col justify-center">
+        <div className="pt-10 pb-6 sm:pt-14 sm:pb-8 lg:py-0 lg:h-full flex flex-col justify-center">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Main Editorial Value Proposition: Strictly constrained to left editorial zone to ensure generous breathing room before the 3D logo */}
             <div className="lg:col-span-6 xl:col-span-5 max-w-[480px] lg:max-w-[460px] xl:max-w-[470px] 2xl:max-w-[480px] space-y-4 lg:space-y-2 xl:space-y-3.5 2xl:space-y-6">
@@ -97,6 +96,23 @@ export function HeroSection(): React.ReactElement {
           </div>
         </div>
       </Container>
+
+      {/* Mobile / Tablet Dedicated 3D Visual Zone (< 1024px)
+          Renders the 3D AGORA logo composition in an independent visual container
+          positioned deliberately below the editorial content, centered precisely on its focal axis. */}
+      <div
+        className="lg:hidden relative w-full overflow-hidden h-[240px] sm:h-[280px] md:h-[320px] select-none pointer-events-none pb-4"
+        aria-hidden="true"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/agora-hero-bg-1920x705.webp"
+          alt=""
+          role="presentation"
+          decoding="async"
+          className="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-[75.8%] h-full w-auto max-w-none select-none pointer-events-none"
+        />
+      </div>
     </section>
   );
 }
