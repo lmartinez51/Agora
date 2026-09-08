@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import HomePage from '@/app/page';
 import { HeroSection } from '@/components/sections/home/HeroSection';
 import { AuthorityMetrics } from '@/components/sections/home/AuthorityMetrics';
@@ -20,9 +21,35 @@ describe('Homepage Section Components', () => {
     expect(pageEl).toBeDefined();
   });
 
-  it('renders HeroSection with correct primary value proposition', () => {
+  it('renders HeroSection with correct primary value proposition and 3D visual integration', () => {
     const heroEl = React.createElement(HeroSection);
     expect(heroEl).toBeDefined();
+    const html = renderToStaticMarkup(heroEl);
+
+    // Dark cinematic hero container governed by 1920x705 aspect ratio
+    expect(html).toContain('bg-[#0B0D13]');
+    expect(html).toContain('overflow-hidden');
+    expect(html).toContain('lg:aspect-[1920/705]');
+
+    // Semantic picture element with 1920x705 3D composition
+    expect(html).toContain('<picture');
+    expect(html).toContain('/images/agora-hero-bg-1920x705.webp');
+    expect(html).toContain('role="presentation"');
+    expect(html).toContain('alt=""');
+    expect(html).toContain('lg:object-contain');
+
+    // Warm off-white heading and bronze eyebrow
+    expect(html).toContain('text-[#F1EEE7]');
+    expect(html).toContain('Soluciones jurídicas con perspectiva local y alcance nacional.');
+    expect(html).toContain(siteConfig.descriptor);
+    expect(html).toContain('Ciudad Juárez');
+
+    // CTAs on dark background
+    expect(html).toContain('Consultar por WhatsApp');
+    expect(html).toContain('Agendar consulta online');
+
+    // Only one logo composition embedded in background, no secondary rendered logo
+    expect(html).not.toContain('Logo-Agora-Refinado.svg');
   });
 
   it('renders AuthorityMetrics with only verified firm metrics', () => {

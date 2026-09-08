@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { practices } from '@/content/practices';
@@ -81,13 +82,23 @@ export function MobileNav(): React.ReactElement {
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-brand-border pb-5 mb-6">
-              <div>
-                <span className="font-serif font-bold text-xl text-brand-primary block tracking-tight">
-                  AGORA, ABOGADOS
-                </span>
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent font-semibold block mt-1">
-                  Consultoría Jurídica
-                </span>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/brand/Logo-Agora-Refinado.svg"
+                  alt=""
+                  width={36}
+                  height={36}
+                  unoptimized
+                  className="h-9 w-9 object-contain flex-shrink-0"
+                />
+                <div>
+                  <span className="font-serif font-bold text-xl text-brand-primary block tracking-tight">
+                    AGORA, ABOGADOS
+                  </span>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent font-semibold block mt-1">
+                    Consultoría Jurídica
+                  </span>
+                </div>
               </div>
               <button
                 type="button"

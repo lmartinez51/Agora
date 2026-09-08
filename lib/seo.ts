@@ -42,6 +42,14 @@ export function constructMetadata({
       locale: 'es_MX',
       type: 'website',
     },
+    icons: {
+      icon: [
+        { url: '/brand/Logo-Agora-Refinado.svg', type: 'image/svg+xml' },
+      ],
+      apple: [
+        { url: '/brand/Logo-Agora-Refinado.svg', type: 'image/svg+xml' },
+      ],
+    },
     robots: {
       index: !noIndex,
       follow: !noIndex,

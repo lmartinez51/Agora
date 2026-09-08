@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Container } from '@/components/ui/Container';
 import { siteConfig } from '@/content/site';
 import { practices } from '@/content/practices';
@@ -12,13 +13,25 @@ export function Footer(): React.ReactElement {
         <div className="py-16 sm:py-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12">
           {/* Column 1 — Firm Identity */}
           <div className="space-y-4">
-            <div>
-              <span className="text-2xl font-serif font-bold text-white block tracking-tight">
-                {siteConfig.name}
-              </span>
-              <span className="text-xs font-mono uppercase tracking-[0.2em] text-brand-accent font-semibold block mt-1.5">
-                {siteConfig.descriptor}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="p-1 bg-white/95 rounded-sm border border-white/20 shadow-xs flex-shrink-0">
+                <Image
+                  src="/brand/Logo-Agora-Refinado.svg"
+                  alt=""
+                  width={36}
+                  height={36}
+                  unoptimized
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+              <div>
+                <span className="text-2xl font-serif font-bold text-white block tracking-tight">
+                  {siteConfig.name}
+                </span>
+                <span className="text-xs font-mono uppercase tracking-[0.2em] text-brand-accent font-semibold block mt-1">
+                  {siteConfig.descriptor}
+                </span>
+              </div>
             </div>
             <p className="text-sm text-neutral-300 leading-relaxed max-w-sm">
               Consultoría jurídica y representación procesal con sede en Ciudad Juárez, Chihuahua. 25 años de experiencia en litigio civil, mercantil, familiar, penal y juicio de amparo.
@@ -151,17 +164,16 @@ export function Footer(): React.ReactElement {
           </div>
         </div>
 
-        {/* Legal Bottom Bar */}
-        <div className="border-t border-white/10 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
+        {/* Legal Bottom Bar: Centered layout to prevent collision with floating chatbot and ensure balanced typography */}
+        <div className="border-t border-white/10 py-8 flex flex-col lg:flex-row items-center justify-center gap-2 lg:gap-6 text-xs text-neutral-400 text-center">
           <p>© {new Date().getFullYear()} {siteConfig.name}. Todos los derechos reservados.</p>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/aviso-de-privacidad"
-              className="hover:text-white underline underline-offset-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent rounded-sm"
-            >
-              Aviso de Privacidad
-            </Link>
-          </div>
+          <span className="hidden lg:inline text-neutral-600" aria-hidden="true">•</span>
+          <Link
+            href="/aviso-de-privacidad"
+            className="hover:text-white underline underline-offset-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent rounded-sm"
+          >
+            Aviso de Privacidad
+          </Link>
         </div>
       </Container>
     </footer>

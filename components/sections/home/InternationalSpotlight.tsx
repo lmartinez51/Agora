@@ -2,6 +2,7 @@ import React from 'react';
 import { Container } from '@/components/ui/Container';
 import { Badge } from '@/components/ui/Badge';
 import { ImageFrame } from '@/components/ui/ImageFrame';
+import Image from 'next/image';
 import { WhatsAppCTA } from '@/components/conversion/WhatsAppCTA';
 import { OnlineConsultationCTA } from '@/components/conversion/OnlineConsultationCTA';
 
@@ -74,9 +75,17 @@ export function InternationalSpotlight(): React.ReactElement {
                 aspectRatio="4/3"
                 aria-label="Consultoría jurídica internacional y remota para asuntos en México"
                 caption="Atención jurídica remota para particulares y empresas en el exterior con asuntos en México."
-                placeholderText="[Fotografía editorial contextual de consultoría jurídica transfronteriza — Pendiente de asignación de archivo definitivo]"
                 className="w-full"
-              />
+              >
+                <Image
+                  src="/images/agora-cross-border.jpg"
+                  alt="Monumento a la Mexicanidad en Ciudad Juárez — Sede de AGORA Consultoría Jurídica Transfronteriza"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 500px"
+                  className="object-cover object-center rounded-sm"
+                  quality={90}
+                />
+              </ImageFrame>
             </div>
           </div>
         </div>

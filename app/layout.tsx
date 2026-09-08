@@ -36,6 +36,8 @@ export default function RootLayout({
     name: siteConfig.name,
     description: siteConfig.tagline,
     telephone: siteConfig.contact.phoneDisplay,
+    logo: '/brand/Logo-Agora-Refinado.svg',
+    image: '/brand/Logo-Agora-Refinado.svg',
     address: {
       '@type': 'PostalAddress',
       addressLocality: siteConfig.location.city,

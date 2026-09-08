@@ -24,6 +24,7 @@ export function DesktopNav(): React.ReactElement {
   }, []);
 
   const isRouteActive = (href: string) => {
+    if (!pathname) return false;
     if (href === '/') {
       return pathname === '/';
     }
@@ -66,7 +67,7 @@ export function DesktopNav(): React.ReactElement {
           onMouseEnter={() => setPracticesOpen(true)}
           className={cn(
             'inline-flex items-center gap-1 px-2 xl:px-2.5 py-1.5 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent cursor-pointer tracking-wide whitespace-nowrap',
-            pathname.startsWith('/practicas')
+            pathname?.startsWith('/practicas')
               ? 'text-brand-primary font-semibold border-b-2 border-brand-accent'
               : 'text-brand-text-secondary hover:text-brand-primary'
           )}

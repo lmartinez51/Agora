@@ -31,4 +31,12 @@ describe('SEO & Canonical Domain Architecture', () => {
     const meta = constructMetadata({ path: '/practicas' });
     expect(meta.alternates?.canonical).toBe('http://localhost:3000/practicas');
   });
+
+  it('includes canonical SVG logo as favicon and apple-touch-icon', () => {
+    const meta = constructMetadata();
+    expect(meta.icons).toEqual({
+      icon: [{ url: '/brand/Logo-Agora-Refinado.svg', type: 'image/svg+xml' }],
+      apple: [{ url: '/brand/Logo-Agora-Refinado.svg', type: 'image/svg+xml' }],
+    });
+  });
 });

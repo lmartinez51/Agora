@@ -19,8 +19,9 @@ Este repositorio contiene la plataforma digital y arquitectura web para la firma
 - **Estilos:** Tailwind CSS con tokens de diseño semánticos
 - **AI Engine:** Orientador Jurídico IA con arquitectura de guardrails, rate limiting en memoria y motor multi-proveedor desacoplado (Google Gemini y OpenAI Responses API, con fallback determinista local)
 - **Testing:** Vitest (Pruebas unitarias, integración y evaluación del subsistema de IA)
+- **Identidad Visual & Marca:** Logotipo vectorial SVG refinado, isotipo canónico integrado en shell y composición visual 3D cinematográfica en alta resolución (WebP)
 - **Iconografía:** Lucide React (Vectorial, ligera y accesible)
-- **SEO:** Generación nativa de metadatos dinámicos, `sitemap.xml`, `robots.txt` y JSON-LD estructurado (`LegalService`)
+- **SEO:** Generación nativa de metadatos dinámicos, iconos vectoriales canónicos, `sitemap.xml`, `robots.txt` y JSON-LD estructurado (`LegalService`)
 
 ---
 
@@ -93,6 +94,5 @@ npm run start
 - Correo electrónico de contacto oficial.
 - Días específicos de operación y atención al público.
 - Nombres, biografías y fotografías de los 7 abogados y 2 socios.
-- Archivo vectorial del logotipo oficial.
 - Dominio final de producción.
 - Duración específica de la consulta inicial gratuita.
