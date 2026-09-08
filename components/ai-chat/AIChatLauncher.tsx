@@ -16,7 +16,7 @@ export function AIChatLauncher({ isOpen, onToggle }: AIChatLauncherProps): React
       aria-expanded={isOpen}
       aria-controls="agora-ai-chat-window"
       aria-label={isOpen ? 'Cerrar asistente virtual' : 'Abrir asistente virtual de AGORA'}
-      className="fixed bottom-20 md:bottom-7 right-4 sm:right-6 z-40 flex items-center gap-2 bg-brand-primary text-white hover:bg-neutral-800 border border-brand-accent/40 px-3.5 py-2.5 rounded-full shadow-overlay transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2"
+      className="fixed bottom-20 md:bottom-9 right-4 sm:right-6 z-40 flex items-center gap-2 bg-brand-primary text-white hover:bg-neutral-800 border border-brand-accent/40 px-3.5 py-2.5 rounded-full shadow-overlay transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2"
     >
       <div className="relative flex items-center justify-center">
         {isOpen ? (
