@@ -8,7 +8,7 @@ import { siteConfig } from '@/content/site';
 export function HeroSection(): React.ReactElement {
   return (
     <section
-      className="relative w-full bg-[#0B0D13] border-b border-white/10 overflow-hidden lg:aspect-[1920/705]"
+      className="relative w-full bg-[#1a2f5c] border-b border-white/10 overflow-hidden lg:aspect-[1920/705]"
       aria-label="Introducción institucional de AGORA"
     >
       {/* Background Visual Layer: Desktop 3D Metallic AGORA Logo Composition (Preserved strictly for >=1024px) */}

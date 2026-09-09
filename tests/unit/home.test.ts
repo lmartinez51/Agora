@@ -27,7 +27,7 @@ describe('Homepage Section Components', () => {
     const html = renderToStaticMarkup(heroEl);
 
     // Dark cinematic hero container governed by 1920x705 aspect ratio
-    expect(html).toContain('bg-[#0B0D13]');
+    expect(html).toContain('bg-[#1a2f5c]');
     expect(html).toContain('overflow-hidden');
     expect(html).toContain('lg:aspect-[1920/705]');
 

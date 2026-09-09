@@ -8,8 +8,11 @@ import { OnlineConsultationCTA } from '@/components/conversion/OnlineConsultatio
 
 export function InternationalSpotlight(): React.ReactElement {
   return (
-    <section className="py-16 sm:py-24 border-b border-brand-primary bg-brand-primary text-white" aria-label="Consultoría legal internacional y transfronteriza">
-      <Container size="xl">
+    <section
+      className="relative py-16 sm:py-24 border-b border-white/10 section-ambient-bg text-white overflow-hidden"
+      aria-label="Consultoría legal internacional y transfronteriza"
+    >
+      <Container size="xl" className="relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           {/* Text and Value Proposition (Columns 1-7) */}
           <div className="lg:col-span-7 space-y-6">
@@ -70,7 +73,7 @@ export function InternationalSpotlight(): React.ReactElement {
 
           {/* Contextual Graphic / Architecture Frame (Columns 8-12) */}
           <div className="lg:col-span-5 w-full">
-            <div className="bg-neutral-900 border border-neutral-700/80 p-3 rounded-md shadow-card">
+            <div className="bg-[#132347] border border-white/10 p-3 rounded-md shadow-card">
               <ImageFrame
                 aspectRatio="4/3"
                 aria-label="Consultoría jurídica internacional y remota para asuntos en México"
