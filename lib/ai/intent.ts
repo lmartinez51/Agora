@@ -230,24 +230,59 @@ export function detectIntent(userQuery: string): AIIntentResult {
     cleaned.startsWith('en qué consiste') ||
     cleaned.startsWith('en que consiste') ||
     query.includes('requisitos para') ||
-    query.includes('plazo para')
+    query.includes('plazo para') ||
+    query.includes('derechos tengo') ||
+    query.includes('derechos tiene') ||
+    query.includes('derechos como') ||
+    query.includes('derechos laborales')
   ) {
     return { intent: 'general_legal_info', confidence: 0.85, suggestedActions: [] };
   }
 
-  // 10. Personal Legal Situation (user describes specific personal problem)
+  // 10. Personal Legal Situation (user describes specific personal problem, dispute, or colloquial conflict)
   if (
     query.includes('mi arrendador') ||
     query.includes('mi casero') ||
     query.includes('mi depósito') ||
     query.includes('mi deposito') ||
+    query.includes('sacar a alguien') ||
+    query.includes('no me paga la renta') ||
+    query.includes('no paga la renta') ||
+    query.includes('desalojo') ||
+    query.includes('desalojar') ||
+    query.includes('quitar el departamento') ||
+    query.includes('quitar la casa') ||
+    query.includes('casa de mis papás') ||
+    query.includes('casa de mis papas') ||
+    query.includes('quedarse con la casa') ||
+    query.includes('herencia') ||
+    query.includes('testamento') ||
     query.includes('me despidieron') ||
+    query.includes('despido') ||
+    query.includes('mi patrón') ||
+    query.includes('mi patron') ||
+    query.includes('no me quiere pagar') ||
+    query.includes('no me pagan') ||
+    query.includes('liquidación') ||
+    query.includes('liquidacion') ||
+    query.includes('finiquito') ||
+    query.includes('choqué') ||
+    query.includes('choque') ||
+    query.includes('intoxiqué') ||
+    query.includes('intoxique') ||
+    query.includes('quiere demandar') ||
+    query.includes('quieren demandar') ||
+    query.includes('puedo demandar') ||
     query.includes('me demandaron') ||
     query.includes('mi contrato') ||
     query.includes('tengo un problema con') ||
+    query.includes('ayudarme con un problema') ||
+    query.includes('ayuda con un problema') ||
     query.includes('me deben') ||
     query.includes('fui arrestado') ||
     query.includes('me arrestaron') ||
+    query.includes('me detuvieron') ||
+    query.includes('si me detuvieron') ||
     query.includes('mi caso') ||
     query.includes('mi situación') ||
     query.includes('mi situacion') ||
@@ -325,16 +360,126 @@ export function detectIntent(userQuery: string): AIIntentResult {
     return { intent: 'greeting', confidence: 0.95, suggestedActions: [] };
   }
 
-  // 14. Out of scope detection (trivia, non-legal)
-  if (
-    query.includes('clima') ||
+  // 14. Out of scope detection (trivia, non-legal, culinary, sports, poetry, math, mechanics)
+  // RULE: OUT-OF-SCOPE + SIN SEÑAL JURÍDICA/INSTITUCIONAL -> out_of_scope
+  //       OUT-OF-SCOPE + SEÑAL JURÍDICA/INSTITUCIONAL     -> preservar intención jurídica/institucional
+  const hasLegalAnchor =
+    query.includes('demanda') ||
+    query.includes('demandar') ||
+    query.includes('demandaron') ||
+    query.includes('juicio') ||
+    query.includes('tribunal') ||
+    query.includes('juez') ||
+    query.includes('juzgado') ||
+    query.includes('fiscalía') ||
+    query.includes('fiscalia') ||
+    query.includes('ministerio público') ||
+    query.includes('ministerio publico') ||
+    query.includes('amparo') ||
+    query.includes('litigio') ||
+    query.includes('procesal') ||
+    query.includes('abogado') ||
+    query.includes('abogados') ||
+    query.includes('patrón') ||
+    query.includes('patron') ||
+    query.includes('despido') ||
+    query.includes('despidieron') ||
+    query.includes('derecho') ||
+    query.includes('derechos') ||
+    query.includes('ley') ||
+    query.includes('legal') ||
+    query.includes('arrendador') ||
+    query.includes('arrendatario') ||
+    query.includes('casero') ||
+    query.includes('renta') ||
+    query.includes('inquilino') ||
+    query.includes('contrato') ||
+    query.includes('deuda') ||
+    query.includes('deben') ||
+    query.includes('herencia') ||
+    query.includes('testamento') ||
+    query.includes('detención') ||
+    query.includes('detencion') ||
+    query.includes('arresto') ||
+    query.includes('detuvieron') ||
+    query.includes('delito') ||
+    query.includes('agora') ||
+    query.includes('firma') ||
+    query.includes('asesoría') ||
+    query.includes('asesoria') ||
+    query.includes('consulta');
+
+  const hasOutOfScopeSignal =
+    // Culinary / food preparation
+    query.includes('tortilla') ||
+    query.includes('tortillas') ||
     query.includes('receta') ||
-    query.includes('capital de') ||
+    query.includes('ingrediente') ||
+    query.includes('ingredientes') ||
+    query.includes('hornear') ||
+    query.includes('harina de trigo') ||
+    query.includes('cómo se hace la') ||
+    query.includes('como se hace la') ||
+    query.includes('cómo se hacen las') ||
+    query.includes('como se hacen las') ||
+    query.includes('cómo se hacen la') ||
+    query.includes('como se hacen la') ||
+    query.includes('cómo se prepara') ||
+    query.includes('como se prepara') ||
+    query.includes('cómo se preparan') ||
+    query.includes('como se preparan') ||
+    query.includes('postre') ||
+    query.includes('repostería') ||
+    query.includes('reposteria') ||
+    // Sports & Pop culture / entertainment
+    query.includes('mundial de fútbol') ||
+    query.includes('mundial de futbol') ||
     query.includes('fútbol') ||
     query.includes('futbol') ||
-    query.includes('chiste')
-  ) {
-    return { intent: 'out_of_scope', confidence: 0.8, suggestedActions: [] };
+    query.includes('chiste') ||
+    query.includes('poema') ||
+    query.includes('poesía') ||
+    query.includes('poesia') ||
+    query.includes('canción') ||
+    query.includes('cancion') ||
+    query.includes('película') ||
+    query.includes('pelicula') ||
+    query.includes('videojuego') ||
+    // Math, trivia & homework
+    query.includes('resuelve la ecuación') ||
+    query.includes('resuelve la ecuacion') ||
+    query.includes('ecuación') ||
+    query.includes('ecuacion') ||
+    query.includes('matemáticas') ||
+    query.includes('matematicas') ||
+    query.includes('capital de') ||
+    query.includes('clima') ||
+    // Automotive / mechanical DIY
+    query.includes('batería de un coche') ||
+    query.includes('bateria de un coche') ||
+    query.includes('batería de un auto') ||
+    query.includes('bateria de un auto') ||
+    query.includes('batería del coche') ||
+    query.includes('bateria del coche') ||
+    query.includes('batería del auto') ||
+    query.includes('bateria del auto') ||
+    query.includes('cambiar la llanta') ||
+    query.includes('reparar motor') ||
+    // Code / programming
+    query.includes('código en python') ||
+    query.includes('codigo en python') ||
+    query.includes('escribe un script');
+
+  if (hasOutOfScopeSignal && !hasLegalAnchor) {
+    const actions: AIChatAction[] = [
+      {
+        type: 'whatsapp',
+        label: 'Consultar por WhatsApp',
+        href: createWhatsAppLink({ context: 'general' }),
+        isExternal: true,
+      },
+    ];
+    return { intent: 'out_of_scope', confidence: 0.9, suggestedActions: actions };
   }
 
   // 15. Ambiguous Safe Fallback (General Info with ZERO CTA spam)

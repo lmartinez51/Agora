@@ -20,14 +20,18 @@ export function AIChatMessage({ message, onActionClick }: AIChatMessageProps): R
     >
       {/* Avatar Icon */}
       <div
-        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${
+        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs select-none ${
           isUser
             ? 'bg-brand-accent text-white'
             : 'bg-brand-primary text-brand-accent border border-brand-primary'
         }`}
         aria-hidden="true"
       >
-        {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+        {isUser ? (
+          <User className="w-4 h-4 select-none pointer-events-none" focusable="false" aria-hidden="true" />
+        ) : (
+          <Bot className="w-4 h-4 select-none pointer-events-none" focusable="false" aria-hidden="true" />
+        )}
       </div>
 
       {/* Bubble */}

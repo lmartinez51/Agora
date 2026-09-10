@@ -7,6 +7,7 @@ import { getAIProvider } from '@/lib/ai/provider';
 import { ChatMessage, AIRequestContext } from '@/lib/ai/types';
 import { checkRateLimit, isLocalhostRequest } from '@/lib/ai/ratelimit';
 import { createWhatsAppLink } from '@/lib/whatsapp';
+import { aiKnowledgePolicy } from '@/content/ai/knowledge-policy';
 import {
   createPilotSessionToken,
   verifyPilotSessionToken,
@@ -256,6 +257,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 7. Intent Detection & Knowledge Context Assembly
     const intentResult = detectIntent(cleanContent);
+
+    // SERVER-SIDE DOMAIN GATE: Deterministic short-circuit for out_of_scope queries
+    if (intentResult.intent === 'out_of_scope') {
+      const outOfScopeActions =
+        intentResult.suggestedActions && intentResult.suggestedActions.length > 0
+          ? intentResult.suggestedActions
+          : [
+              {
+                type: 'whatsapp' as const,
+                label: 'Consultar por WhatsApp',
+                href: createWhatsAppLink({ context: 'general' }),
+                isExternal: true,
+              },
+            ];
+
+      return NextResponse.json({
+        message: {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: aiKnowledgePolicy.outOfScopeResponse,
+          createdAt: Date.now(),
+          actions: outOfScopeActions,
+        },
+        intent: 'out_of_scope',
+      });
+    }
+
     const groundedKnowledge = getSystemPromptKnowledge();
 
     const requestContext: AIRequestContext = {

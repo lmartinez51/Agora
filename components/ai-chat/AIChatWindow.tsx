@@ -60,8 +60,8 @@ export function AIChatWindow({
       {/* 1. Header */}
       <header className="p-3.5 bg-brand-primary text-white border-b border-brand-primary flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-brand-muted/20 border border-brand-accent/40 flex items-center justify-center text-brand-accent">
-            <Bot className="w-4 h-4" aria-hidden="true" />
+          <div className="w-8 h-8 rounded-full bg-brand-muted/20 border border-brand-accent/40 flex items-center justify-center text-brand-accent select-none pointer-events-none">
+            <Bot className="w-4 h-4 select-none pointer-events-none" focusable="false" aria-hidden="true" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -111,7 +111,7 @@ export function AIChatWindow({
         {/* Welcome Disclaimer Box */}
         <div className="p-3 bg-brand-surface border border-brand-border rounded-sm text-[11px] text-brand-text-secondary leading-relaxed space-y-1.5 shadow-subtle">
           <div className="flex items-center gap-1.5 text-brand-accent font-semibold uppercase tracking-wider text-[10px] font-mono">
-            <Sparkles className="w-3 h-3" aria-hidden="true" />
+            <Sparkles className="w-3 h-3 select-none pointer-events-none" focusable="false" aria-hidden="true" />
             <span>Orientación Informativa Automatizada</span>
           </div>
           <p>{aiIdentity.welcomeMessage}</p>
@@ -157,8 +157,8 @@ export function AIChatWindow({
       {/* 3. Footer Input & Disclaimer */}
       <footer className="flex-shrink-0 bg-brand-surface border-t border-brand-border">
         <AIChatInput onSendMessage={onSendMessage} isLoading={isLoading} />
-        <div className="px-3 py-1.5 bg-brand-surface text-center flex items-center justify-center gap-1 text-[10px] text-brand-text-muted border-t border-brand-border/60">
-          <AlertCircle className="w-3 h-3 text-brand-accent flex-shrink-0" aria-hidden="true" />
+        <div className="px-3 py-1.5 bg-brand-surface text-center flex items-center justify-center gap-1 text-[10px] text-brand-text-muted border-t border-brand-border/60 select-none">
+          <AlertCircle className="w-3 h-3 text-brand-accent flex-shrink-0 select-none pointer-events-none" focusable="false" aria-hidden="true" />
           <span className="truncate">No sustituye la asesoría jurídica de un abogado.</span>
         </div>
       </footer>
