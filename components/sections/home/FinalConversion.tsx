@@ -29,10 +29,11 @@ export function FinalConversion(): React.ReactElement {
               className="justify-center shadow-subtle text-sm"
             />
             <OnlineConsultationCTA
+              variant="primary"
               size="lg"
               fullWidth
               label="Agendar consulta online"
-              className="justify-center text-sm"
+              className="justify-center shadow-subtle text-sm"
             />
           </div>
 
